@@ -1,2 +1,2 @@
 # mockup-maker
-Mockup Maker created by Yudantoardi
+Mockup Maker
