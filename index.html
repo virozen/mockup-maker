@@ -96,6 +96,9 @@
             const realIdx = layers.length - 1 - idx;
             if (!l.visible) return;
             ctx.save();
+            // Mengaktifkan algoritma smoothing bawaan browser
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high'; // Pilihan: 'low', 'medium', 'high'
             const c = getCenter(l.corners);
             ctx.translate(c.x, c.y); ctx.rotate(l.rotation || 0); ctx.translate(-c.x, -c.y);
             
@@ -131,13 +134,26 @@
     }
 
     function drawSkewed(l, targetCtx) {
-        const step = 8;
+        // Mengaktifkan smoothing khusus untuk proses skew
+        targetCtx.imageSmoothingEnabled = true;
+        targetCtx.imageSmoothingQuality = 'high';
+
+        const step = 2; // Memperkecil step (dari 8 ke 2) untuk detail lebih rapat
+        const overlap = 0.5; // Memberikan sedikit overlap agar tidak ada celah garis putih
+
         for (let y = 0; y < l.img.height; y += step) {
             for (let x = 0; x < l.img.width; x += step) {
-                const u = x/l.img.width, v = y/l.img.height;
+                const u = x / l.img.width, v = y / l.img.height;
+                
+                // Kalkulasi posisi 4 titik (Bilinear Interpolation)
                 const px = (1-u)*(1-v)*l.corners[0].x + u*(1-v)*l.corners[1].x + u*v*l.corners[2].x + (1-u)*v*l.corners[3].x;
                 const py = (1-u)*(1-v)*l.corners[0].y + u*(1-v)*l.corners[1].y + u*v*l.corners[2].y + (1-u)*v*l.corners[3].y;
-                targetCtx.drawImage(l.img, x, y, step, step, px, py, step*((l.corners[1].x-l.corners[0].x)/l.img.width)+1.2, step*((l.corners[2].y-l.corners[1].y)/l.img.height)+1.2);
+                
+                // Kalkulasi lebar & tinggi dinamis berdasarkan transformasi
+                const drawW = step * ((l.corners[1].x - l.corners[0].x) / l.img.width) + overlap;
+                const drawH = step * ((l.corners[2].y - l.corners[1].y) / l.img.height) + overlap;
+
+                targetCtx.drawImage(l.img, x, y, step, step, px, py, drawW, drawH);
             }
         }
     }
