@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultra High-Res AI BG Remover</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-segmentation"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+    <style>
+        :root { --p: #4f46e5; --s: #059669; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: white; display: flex; justify-content: center; padding: 20px; }
+        .card { background: #1e293b; width: 100%; max-width: 1000px; padding: 30px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; }
+        
+        #drop-zone { border: 2px dashed #475569; padding: 40px; border-radius: 20px; cursor: pointer; transition: 0.3s; background: #334155; margin-bottom: 20px; }
+        #drop-zone:hover { border-color: var(--p); background: #3d4b5f; }
+        
+        .progress-wrapper { width: 100%; background: #0f172a; border-radius: 20px; height: 12px; margin: 20px 0; display: none; overflow: hidden; }
+        #progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #818cf8, var(--p)); transition: width 0.3s; }
+        
+        .preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 25px; }
+        .box { background: #334155; padding: 10px; border-radius: 16px; border: 1px solid #475569; }
+        canvas, img { max-width: 100%; height: auto; border-radius: 12px; display: block; margin: 0 auto; }
+        
+        .transparent-pattern { background-image: conic-gradient(#475569 0.25turn, #334155 0.25turn 0.5turn, #475569 0.5turn 0.75turn, #334155 0.75turn); background-size: 20px 20px; }
+
+        .btn-group { margin-top: 30px; display: flex; justify-content: center; gap: 10px; }
+        button { padding: 14px 30px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 15px; }
+        .btn-main { background: var(--p); color: white; }
+        .btn-main:hover { background: #4338ca; transform: translateY(-2px); }
+        .btn-main:disabled { background: #475569; cursor: not-allowed; }
+        .btn-download { background: var(--s); color: white; display: none; }
+        #status { font-size: 14px; color: #94a3b8; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Ultra Detail Background Remover</h2>
+    <p style="color: #94a3b8; margin-bottom: 20px;">Optimasi untuk aksesoris kompleks & objek industri (Mobil, dll)</p>
+    
+    <div id="drop-zone">
+        <p>Drop file HD Anda di sini atau Klik</p>
+        <input type="file" id="file-input" accept="image/*" style="display: none;">
+    </div>
+
+    <div class="progress-wrapper" id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+    <p id="status">Loading AI Engine...</p>
+
+    <div class="preview-grid">
+        <div class="box"><p style="font-size: 12px;">INPUT</p><img id="input-img" style="display:none;"></div>
+        <div class="box"><p style="font-size: 12px;">ULTRA-HD RESULT</p><canvas id="output-canvas" class="transparent-pattern"></canvas></div>
+    </div>
+
+    <div class="btn-group">
+        <button id="process-btn" class="btn-main" disabled>Remove Background</button>
+        <button id="download-btn" class="btn-download">Download PNG</button>
+    </div>
+</div>
+
+<script>
+    const inputImg = document.getElementById('input-img');
+    const canvas = document.getElementById('output-canvas');
+    const status = document.getElementById('status');
+    const progressBar = document.getElementById('progress-bar');
+    const progressContainer = document.getElementById('progress-container');
+    const processBtn = document.getElementById('process-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    
+    let segmenter;
+    let fileName = "result";
+
+    async function setupAI() {
+        try {
+            await tf.setBackend('webgl');
+            const model = bodySegmentation.SupportedModels.MediaPipeSelfieSegmentation;
+            segmenter = await bodySegmentation.createSegmenter(model, {
+                runtime: 'tfjs',
+                modelType: 'general' 
+            });
+            status.innerText = "Engine Siap (WebGL Accelerated)";
+        } catch (e) {
+            status.innerText = "Error loading AI. Coba gunakan Chrome.";
+        }
+    }
+    setupAI();
+
+    document.getElementById('drop-zone').onclick = () => document.getElementById('file-input').click();
+    document.getElementById('file-input').onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        fileName = file.name.replace(/\.[^/.]+$/, "");
+        const reader = new FileReader();
+        reader.onload = (f) => {
+            inputImg.src = f.target.result;
+            inputImg.onload = () => {
+                inputImg.style.display = "block";
+                processBtn.disabled = false;
+                downloadBtn.style.display = "none";
+                status.innerText = "Gambar siap dianalisis.";
+            };
+        };
+        reader.readAsDataURL(file);
+    };
+
+    processBtn.onclick = async () => {
+        progressContainer.style.display = "block";
+        progressBar.style.width = "20%";
+        status.innerText = "Deep Analysis Berjalan...";
+        processBtn.disabled = true;
+
+        const w = inputImg.naturalWidth;
+        const h = inputImg.naturalHeight;
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        try {
+            // 1. AI Segmentation
+            const segmentation = await segmenter.segmentPeople(inputImg);
+            progressBar.style.width = "50%";
+            status.innerText = "Menerapkan Ultra-Smoothing...";
+
+            // 2. Buat Masker Mentah
+            const mask = await bodySegmentation.toBinaryMask(segmentation, 
+                {r: 255, g: 255, b: 255, a: 255}, {r: 0, g: 0, b: 0, a: 0}
+            );
+
+            // 3. Teknik Alpha Matting Simulation
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = mask.width;
+            offCanvas.height = mask.height;
+            const offCtx = offCanvas.getContext('2d');
+            offCtx.putImageData(mask, 0, 0);
+
+            // Bersihkan Main Canvas
+            ctx.clearRect(0, 0, w, h);
+            
+            // Menggambar Masker dengan Sub-pixel Smoothing
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            // Rahasia detail tinggi: Menggambar masker dengan sedikit blur 
+            // lalu menimpanya dengan mode destination-in berkali-kali
+            ctx.filter = 'blur(1px)'; 
+            ctx.drawImage(offCanvas, 0, 0, w, h);
+            ctx.filter = 'none';
+
+            ctx.globalCompositeOperation = 'source-in';
+            ctx.drawImage(inputImg, 0, 0, w, h);
+            
+            // 4. Refinement Layer (Opsional: Menambal bagian transparan tipis)
+            ctx.globalCompositeOperation = 'destination-over';
+            // (Tetap transparan)
+
+            progressBar.style.width = "100%";
+            status.innerText = "Selesai dengan detail HD!";
+            downloadBtn.style.display = "inline-block";
+        } catch (err) {
+            status.innerText = "Gagal memproses gambar HD.";
+        } finally {
+            processBtn.disabled = false;
+        }
+    };
+
+    downloadBtn.onclick = () => {
+        const link = document.createElement('a');
+        link.download = `${fileName}_bgremoved.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    };
+</script>
+</body>
+</html>

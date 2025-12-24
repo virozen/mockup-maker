@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DoodleArt Pro - Fix Undo Redo Button</title>
+    <style>
+        :root {
+            --bg: #0f0f12; --panel: rgba(30, 30, 35, 0.95); --accent: #007aff;
+            --danger: #ff3b30; --border: rgba(255, 255, 255, 0.1); --text: #e0e0e0;
+        }
+        body { margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); user-select: none; }
+        
+        /* Virtual Cursor */
+        #virtual-cursor { 
+            position: fixed; pointer-events: none; border: 1.5px solid rgba(255,255,255,0.8); 
+            border-radius: 50%; transform: translate(-50%, -50%); display: none; 
+            z-index: 9999; box-shadow: 0 0 4px rgba(0,0,0,0.5); 
+        }
+
+        .glass-panel { background: var(--panel); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 16px; }
+        #viewport { width: 100vw; height: 100vh; display: none; align-items: center; justify-content: center; overflow: hidden; }
+        #canvas-wrapper { position: relative; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+        canvas { background: white; display: block; }
+
+        /* Toolbars */
+        #left-bar { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); padding: 12px; display: flex; flex-direction: column; gap: 10px; z-index: 100; align-items: center;}
+        #right-bar { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); padding: 20px 14px; display: flex; flex-direction: column; align-items: center; gap: 15px; z-index: 100; }
+        #bottom-bar { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); padding: 10px 20px; display: flex; align-items: center; gap: 15px; z-index: 100; }
+
+        .tool-btn { 
+            background: rgba(255,255,255,0.06); border: none; color: white; 
+            width: 48px; height: 48px; border-radius: 12px; cursor: pointer; 
+            font-size: 1.2rem; transition: 0.2s; display: flex; align-items: center; justify-content: center; 
+        }
+        .tool-btn:hover { background: rgba(255,255,255,0.15); }
+        .tool-btn.active { background: var(--accent); }
+
+        input[type="range"].vertical { appearance: slider-vertical; width: 6px; height: 180px; }
+        .color-preview { width: 35px; height: 35px; border-radius: 50%; border: 2px solid white; position: relative; overflow: hidden; }
+        #colorPicker { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+        .hist-chip { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
+
+        /* Modals */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 5000; }
+        .modal { background: #1c1c1e; padding: 30px; border-radius: 24px; width: 320px; text-align: center; border: 1px solid var(--border); }
+        .primary-btn { width: 100%; padding: 12px; background: var(--accent); border: none; color: white; border-radius: 12px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .secondary-btn { background: #3a3a3c; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="virtual-cursor"></div>
+
+<div id="setup-screen" class="overlay">
+    <div class="modal">
+        <h2>Canvas Baru</h2>
+        <input type="number" id="inp-width" value="1000" style="width:100%; padding:10px; margin-bottom:10px; background:#2c2c2e; border:none; border-radius:8px; color:white;">
+        <input type="number" id="inp-height" value="700" style="width:100%; padding:10px; margin-bottom:20px; background:#2c2c2e; border:none; border-radius:8px; color:white;">
+        <button class="primary-btn" onclick="initCanvas()">Mulai Menggambar</button>
+    </div>
+</div>
+
+<div id="clear-modal" class="overlay hidden">
+    <div class="modal">
+        <h3 style="color:var(--danger)">Hapus Kanvas?</h3>
+        <p style="color:#888; font-size:14px;">Tindakan ini akan menghapus semua coretan (Bisa Undo).</p>
+        <button class="primary-btn" style="background:var(--danger)" onclick="clearCanvas()">Hapus Sekarang</button>
+        <button class="primary-btn secondary-btn" onclick="toggleModal('clear-modal', false)">Batal</button>
+    </div>
+</div>
+
+<div id="export-modal" class="overlay hidden">
+    <div class="modal">
+        <h3>Opsi Ekspor</h3>
+        <button class="primary-btn" onclick="doExport(true)">Hanya Gambar (Auto-Crop)</button>
+        <button class="primary-btn secondary-btn" onclick="doExport(false)">Seluruh Kanvas</button>
+        <button class="primary-btn" style="background:transparent; color:#888" onclick="toggleModal('export-modal', false)">Batal</button>
+    </div>
+</div>
+
+<div id="viewport">
+    <div id="canvas-wrapper"><canvas id="mainCanvas"></canvas></div>
+</div>
+
+<div id="left-bar" class="glass-panel hidden">
+    <button class="tool-btn active" data-tool="pencil">✏️</button>
+    <button class="tool-btn" data-tool="brush">🖌️</button>
+    <button class="tool-btn" data-tool="ink">🖋️</button>
+    <button class="tool-btn" data-tool="eraser">🧽</button>
+    <button class="tool-btn" data-tool="fill">🪣</button>
+    <hr style="width:100%; border:0; border-top:1px solid var(--border);">
+    <div class="color-preview" id="colorPrev" style="background:#000;"><input type="color" id="colorPicker" value="#000000"></div>
+    <div id="historyColors" style="display:flex; flex-direction:column; gap:8px;"></div>
+</div>
+
+<div id="right-bar" class="glass-panel hidden">
+    <input type="range" id="sizeSlider" class="vertical" min="1" max="150" value="10">
+    <span id="sizeVal" style="font-weight:bold; font-size:14px;">10</span>
+</div>
+
+<div id="bottom-bar" class="glass-panel hidden">
+    <button class="tool-btn" onclick="handleUndo()" style="width:80px; font-size:14px;">Undo</button>
+    <button class="tool-btn" onclick="handleRedo()" style="width:80px; font-size:14px;">Redo</button>
+    <button class="tool-btn" onclick="toggleModal('clear-modal', true)">🗑️</button>
+    <button class="primary-btn" style="margin:0; width:100px;" onclick="toggleModal('export-modal', true)">Export</button>
+</div>
+
+<script>
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const vCursor = document.getElementById('virtual-cursor');
+
+    let drawing = false, currentTool = 'pencil', color = '#000000', brushSize = 10;
+    let historyStack = [], redoStack = [];
+    let colorHistory = ['#000000', '#ff3b30', '#4cd964', '#007aff', '#ffcc00'];
+
+    let scale = 1;
+    const minScale = 0.1;
+    const maxScale = 5;
+    const scaleStep = 0.1;
+
+    function initCanvas() {
+        const w = parseInt(document.getElementById('inp-width').value) || 1000;
+        const h = parseInt(document.getElementById('inp-height').value) || 700;
+        canvas.width = w; canvas.height = h;
+        
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('viewport').style.display = 'flex';
+        ['left-bar', 'right-bar', 'bottom-bar'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+        
+        saveStep(); // Simpan kondisi awal
+        renderHistory();
+    }
+
+    function updateZoom() {
+        // Membatasi zoom agar tidak terlalu kecil atau terlalu besar
+        scale = Math.min(Math.max(minScale, scale), maxScale);
+        
+        const wrapper = document.getElementById('canvas-wrapper');
+        if (wrapper) {
+            wrapper.style.transform = `scale(${scale})`;
+            wrapper.style.transition = 'transform 0.1s ease-out'; // Agar transisi halus
+            wrapper.style.transformOrigin = 'center center';
+        }
+    }
+
+    // --- FIX: SISTEM HISTORI PER STEP & ANTI-GELAP ---
+    function saveStep() {
+        // Simpan snapshot saat ini
+        historyStack.push(canvas.toDataURL());
+        if (historyStack.length > 50) historyStack.shift();
+        redoStack = []; 
+    }
+
+    function handleUndo() {
+        if (historyStack.length > 1) {
+            redoStack.push(historyStack.pop());
+            const lastData = historyStack[historyStack.length - 1];
+            applySnapshot(lastData);
+        }
+    }
+
+    function handleRedo() {
+        if (redoStack.length > 0) {
+            const nextData = redoStack.pop();
+            historyStack.push(nextData);
+            applySnapshot(nextData);
+        }
+    }
+
+    function applySnapshot(dataURL) {
+        const img = new Image();
+        img.src = dataURL;
+        img.onload = () => {
+            // Mencegah layar gelap: Selalu isi putih dulu sebelum menimpa gambar
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+        };
+    }
+
+    function clearCanvas() {
+        // Bersihkan secara visual ke putih
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Simpan aksi "clear" sebagai satu step baru dalam histori
+        saveStep();
+        toggleModal('clear-modal', false);
+    }
+
+    // --- DRAWING LOGIC ---
+    function setupCtx() {
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1.0;
+        
+        if (currentTool === 'brush') {
+            ctx.globalAlpha = 0.4;
+            ctx.shadowBlur = brushSize / 2;
+            ctx.shadowColor = color;
+            ctx.strokeStyle = color;
+        } else if (currentTool === 'eraser') {
+            ctx.strokeStyle = 'white';
+        } else {
+            ctx.strokeStyle = color;
+        }
+        ctx.lineWidth = (currentTool === 'pencil') ? 1.5 : brushSize;
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+        const pos = getCoord(e);
+        if (currentTool === 'fill') {
+            floodFill(Math.floor(pos.x), Math.floor(pos.y), color);
+            saveStep(); // Fill adalah satu step
+        } else {
+            drawing = true;
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            setupCtx();
+        }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        updateCursorVisual(e);
+        if (!drawing) return;
+        const pos = getCoord(e);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+    });
+
+    window.addEventListener('mouseup', () => { 
+        if (drawing) { drawing = false; saveStep(); } // Simpan per coretan
+    });
+
+    function getCoord(e) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    // --- UI DYNAMICS & SHORTCUTS ---
+    function updateCursorVisual(e) {
+        if (e && e.target === canvas) {
+            if (currentTool === 'pencil' || currentTool === 'fill') {
+                vCursor.style.display = 'none';
+                canvas.style.cursor = 'crosshair';
+            } else {
+                vCursor.style.display = 'block';
+                vCursor.style.left = `${e.clientX}px`;
+                vCursor.style.top = `${e.clientY}px`;
+                vCursor.style.width = vCursor.style.height = `${brushSize}px`;
+                canvas.style.cursor = 'none';
+            }
+        } else {
+            vCursor.style.display = 'none';
+            canvas.style.cursor = 'default';
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === '[') { brushSize = Math.max(1, brushSize - 2); updateUI(); }
+        if (e.key === ']') { brushSize = Math.min(150, brushSize + 2); updateUI(); }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); handleUndo(); }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); handleRedo(); }
+    });
+
+    function updateUI() {
+        document.getElementById('sizeSlider').value = brushSize;
+        document.getElementById('sizeVal').innerText = brushSize;
+        const lx = parseFloat(vCursor.style.left), ly = parseFloat(vCursor.style.top);
+        if (!isNaN(lx)) updateCursorVisual({ target: canvas, clientX: lx, clientY: ly });
+    }
+
+    // --- EXPORT & COLOR ---
+    function doExport(shouldCrop) {
+        let exp = canvas;
+        if (shouldCrop) {
+            const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+            let x1=canvas.width, y1=canvas.height, x2=0, y2=0, f=false;
+            for(let y=0; y<canvas.height; y++){
+                for(let x=0; x<canvas.width; x++){
+                    const i = (y*canvas.width+x)*4;
+                    if(data[i]<250||data[i+1]<250||data[i+2]<250){
+                        x1=Math.min(x1,x); x2=Math.max(x2,x); y1=Math.min(y1,y); y2=Math.max(y2,y); f=true;
+                    }
+                }
+            }
+            if(f){
+                const t = document.createElement('canvas'); const p=20;
+                t.width=(x2-x1)+p*2; t.height=(y2-y1)+p*2;
+                const tc = t.getContext('2d'); tc.fillStyle="white"; tc.fillRect(0,0,t.width,t.height);
+                tc.drawImage(canvas,x1,y1,x2-x1,y2-y1,p,p,x2-x1,y2-y1); exp=t;
+            }
+        }
+        const a = document.createElement('a'); a.download='doodle.png'; a.href=exp.toDataURL(); a.click();
+        toggleModal('export-modal', false);
+    }
+
+    function toggleModal(id, show) { document.getElementById(id).classList.toggle('hidden', !show); }
+    document.getElementById('sizeSlider').oninput = (e) => { brushSize = parseInt(e.target.value); updateUI(); };
+    document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.onclick = () => {
+        document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+        b.classList.add('active'); currentTool = b.dataset.tool;
+    });
+
+    document.getElementById('colorPicker').onchange = (e) => {
+        color = e.target.value; document.getElementById('colorPrev').style.background = color;
+        if (!colorHistory.includes(color)) { colorHistory.unshift(color); colorHistory = colorHistory.slice(0,5); renderHistory(); }
+    };
+
+    function renderHistory() {
+        const hC = document.getElementById('historyColors'); hC.innerHTML = '';
+        colorHistory.forEach(c => {
+            const d = document.createElement('div'); d.className='hist-chip'; d.style.background=c;
+            d.onclick=()=>{ color=c; document.getElementById('colorPrev').style.background=c; }; hC.appendChild(d);
+        });
+    }
+
+    function floodFill(sX, sY, fH) {
+        const iD = ctx.getImageData(0,0,canvas.width,canvas.height); const d = iD.data;
+        const i = (sY*canvas.width+sX)*4;
+        const t = {r:d[i], g:d[i+1], b:d[i+2]};
+        const f = {r:parseInt(fH.slice(1,3),16), g:parseInt(fH.slice(3,5),16), b:parseInt(fH.slice(5,7),16)};
+        if(t.r===f.r && t.g===f.g && t.b===f.b) return;
+        const q = [[sX, sY]];
+        while(q.length){
+            const [x,y] = q.pop(); const idx = (y*canvas.width+x)*4;
+            if(d[idx]===t.r && d[idx+1]===t.g && d[idx+2]===t.b){
+                d[idx]=f.r; d[idx+1]=f.g; d[idx+2]=f.b; d[idx+3]=255;
+                if(x>0) q.push([x-1,y]); if(x<canvas.width-1) q.push([x+1,y]);
+                if(y>0) q.push([x,y-1]); if(y<canvas.height-1) q.push([x,y+1]);
+            }
+        }
+        ctx.putImageData(iD, 0, 0);
+    }
+
+    // Listener untuk Zoom Keyboard (CTRL/CMD + dan CTRL/CMD -)
+    window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === '+' || e.key === '=') { // '=' biasanya adalah '+' tanpa shift
+                e.preventDefault();
+                scale += scaleStep;
+                updateZoom();
+            } else if (e.key === '-') {
+                e.preventDefault();
+                scale -= scaleStep;
+                updateZoom();
+            } else if (e.key === '0') { // Bonus: CTRL+0 untuk reset zoom
+                e.preventDefault();
+                scale = 1;
+                updateZoom();
+            }
+        }
+    });
+
+    // Listener untuk Pinch Mousepad / Wheel Zoom
+    // Browser mengenali pinch sebagai 'wheel' dengan tombol CTRL aktif
+    window.addEventListener('wheel', (e) => {
+        if (e.ctrlKey) {
+            e.preventDefault();
+            // Arah zoom berdasarkan scroll (deltaY)
+            const delta = -e.deltaY;
+            if (delta > 0) {
+                scale += scaleStep;
+            } else {
+                scale -= scaleStep;
+            }
+            updateZoom();
+        }
+    }, { passive: false });
+</script>
+</body>
+</html>
