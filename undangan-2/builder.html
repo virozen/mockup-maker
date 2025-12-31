@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Undangan Pro Builder | Premium Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@1,600&display=swap');
+        
+        :root { --gold: #d4af37; --dark: #0f1115; --card: #1a1d23; --border: rgba(255,255,255,0.06); }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--dark); color: #e2e8f0; }
+        
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: var(--dark); }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        .section-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 24px; margin-bottom: 24px; transition: 0.3s; }
+        .section-card:focus-within { border-color: rgba(212, 175, 55, 0.4); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        
+        .label-gold { color: var(--gold); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .label-gold::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(212, 175, 55, 0.3), transparent); }
+
+        .inp { width: 100%; background: #0f1115; border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; color: white; font-size: 13px; outline: none; transition: 0.2s; margin-bottom: 12px; }
+        .inp:focus { border-color: var(--gold); background: black; }
+        
+        .prog-bg { h-1.5 w-full bg-black/40 rounded-full overflow-hidden mt-2 hidden; }
+        .prog-fill { h-full bg-gradient-to-r from-amber-600 to-yellow-300 transition-all duration-300; }
+        
+        .upload-box { border: 1px dashed #334155; border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .upload-box:hover { border-color: var(--gold); background: rgba(212, 175, 55, 0.05); }
+
+        .btn-save { background: linear-gradient(135deg, #d4af37, #b8860b); color: #000; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <aside class="w-[420px] h-full flex flex-col bg-[#0f1115] border-r border-white/5 z-50">
+        <div class="p-8 flex justify-between items-center border-b border-white/5">
+            <div>
+                <h1 class="text-xl font-bold tracking-tighter">UNDANGAN<span class="text-amber-500 italic">PRO</span></h1>
+                <p class="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Premium Builder v2.0</p>
+            </div>
+            <button onclick="importData()" class="p-2 hover:bg-white/5 rounded-full text-slate-400"><i data-lucide="upload-cloud" class="w-5"></i></button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 pb-32">
+            <div class="section-card">
+                <span class="label-gold">Template & Music</span>
+                <p class="text-[9px] text-slate-500 mb-2 uppercase font-bold tracking-widest">Template</p>
+                <select id="f-theme" class="inp" onchange="sync()">
+                    <option value="theme-luxury">01. Grand Luxury (Gold)</option>
+                    <option value="theme-dark">02. Midnight Premium (Dark)</option>
+                    <option value="theme-modern">03. Minimalist Clean (White)</option>
+                    <option value="theme-floral">04. Sweet Botanical (Pink)</option>
+                    <option value="theme-emerald">05. Emerald (Green)</option>
+                    <option value="theme-rosegold">06. Rosegold (Brown)</option>
+                    <option value="theme-royal">07. Royal (Blue)</option>
+                    <option value="theme-earthy">08. Earthy (Brown)</option>
+                    <option value="theme-sage">09. Sage (Green)</option>
+                    <option value="theme-velvet">10. Velvet (Red)</option>
+                </select>
+                
+                <p class="text-[9px] text-slate-500 mb-2 uppercase font-bold tracking-widest">Musik</p>
+                <input type="file" id="up-mu" class="inp" accept="audio/*" onchange="handleFile(event, 'mu')">
+                <div id="mu-prog" class="prog-bg mt-2"><div id="mu-fill" class="prog-fill" style="width:0%"></div></div>
+            </div>
+
+            <div class="section-card">
+                <span class="label-gold">Mempelai Pria</span>
+                <input type="text" id="m1-nl" class="inp" placeholder="Nama Lengkap" oninput="sync()">
+                <input type="text" id="m1-np" class="inp" placeholder="Nama Panggilan" oninput="sync()">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="m1-ay" class="inp" placeholder="Nama Ayah" oninput="sync()">
+                    <input type="text" id="m1-ib" class="inp" placeholder="Nama Ibu" oninput="sync()">
+                </div>
+                <div id="m1-pre" class="hidden mb-3 relative group">
+                    <img id="m1-img" class="w-20 h-20 rounded-xl object-cover border border-amber-500/50">
+                    <button onclick="removeFile('m1')" class="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 text-white">×</button>
+                </div>
+                <div class="upload-box" onclick="document.getElementById('up-m1').click()">
+                    <i data-lucide="camera" class="w-4 h-4 mx-auto mb-1 text-amber-500"></i>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase">Foto Pria</span>
+                </div>
+                <input type="file" id="up-m1" class="hidden" accept="image/*" onchange="handleFile(event, 'm1')">
+                <div id="m1-prog" class="prog-bg"><div id="m1-fill" class="prog-fill"></div></div>
+            </div>
+
+            <div class="section-card">
+                <span class="label-gold">Mempelai Wanita</span>
+                <input type="text" id="m2-nl" class="inp" placeholder="Nama Lengkap" oninput="sync()">
+                <input type="text" id="m2-np" class="inp" placeholder="Nama Panggilan" oninput="sync()">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="m2-ay" class="inp" placeholder="Nama Ayah" oninput="sync()">
+                    <input type="text" id="m2-ib" class="inp" placeholder="Nama Ibu" oninput="sync()">
+                </div>
+                <div id="m2-pre" class="hidden mb-3 relative group">
+                    <img id="m2-img" class="w-20 h-20 rounded-xl object-cover border border-amber-500/50">
+                    <button onclick="removeFile('m2')" class="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 text-white">×</button>
+                </div>
+                <div class="upload-box" onclick="document.getElementById('up-m2').click()">
+                    <i data-lucide="camera" class="w-4 h-4 mx-auto mb-1 text-amber-500"></i>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase">Foto Wanita</span>
+                </div>
+                <input type="file" id="up-m2" class="hidden" accept="image/*" onchange="handleFile(event, 'm2')">
+                <div id="m2-prog" class="prog-bg"><div id="m2-fill" class="prog-fill"></div></div>
+            </div>
+
+            <div class="section-card">
+                <span class="label-gold">Acara Pernikahan</span>
+                <p class="text-[9px] text-slate-500 mb-2 uppercase font-bold tracking-widest">Akad Nikah</p>
+                <input type="date" id="ak-tgl" class="inp" onchange="sync()">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="time" id="ak-js" class="inp" oninput="sync()">
+                    <input type="time" id="ak-je" class="inp" oninput="sync()">
+                </div>
+                <input type="text" id="ak-lok" class="inp" placeholder="Nama Lokasi Akad" oninput="sync()">
+                <textarea id="ak-alm" class="inp h-20" placeholder="Alamat Lengkap" oninput="sync()"></textarea>
+                <input type="text" id="ak-map" class="inp" placeholder="Link Google Maps" oninput="sync()">
+
+                <p class="text-[9px] text-slate-500 mb-2 mt-4 uppercase font-bold tracking-widest">Resepsi</p>
+                <input type="date" id="re-tgl" class="inp" onchange="sync()">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="time" id="re-js" class="inp" oninput="sync()">
+                    <input type="time" id="re-je" class="inp" oninput="sync()">
+                </div>
+                <input type="text" id="re-lok" class="inp" placeholder="Nama Lokasi Resepsi" oninput="sync()">
+                <textarea id="re-alm" class="inp h-20" placeholder="Alamat Lengkap" oninput="sync()"></textarea>
+                <input type="text" id="re-map" class="inp" placeholder="Link Google Maps" oninput="sync()">
+            </div>
+
+            <div class="section-card">
+                <span class="label-gold">Galeri Pre-Wedding</span>
+                <div id="gal-pre" class="grid grid-cols-5 gap-2 mb-4"></div>
+                <div id="btn-gal-box" class="upload-box" onclick="document.getElementById('up-gal').click()">
+                    <i data-lucide="plus" class="w-4 h-4 mx-auto mb-1 text-amber-500"></i>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase">Tambah Foto (Maks 10)</span>
+                </div>
+                <input type="file" id="up-gal" class="hidden" accept="image/*" onchange="handleGal(event)">
+                <div id="gal-prog" class="prog-bg"><div id="gal-fill" class="prog-fill"></div></div>
+            </div>
+
+            <div class="section-card">
+                <span class="label-gold">Cerita & Quotes</span>
+                <textarea id="f-story" class="inp h-32" placeholder="Cerita Singkat Mempelai..." oninput="sync()"></textarea>
+                <textarea id="f-quote" class="inp h-24" placeholder="Wedding Quote / Ayat..." oninput="sync()"></textarea>
+            </div>
+
+            <div class="section-card">
+                <span class="label-gold">Wedding Gift</span>
+                <input type="text" id="g-alm" class="inp" placeholder="Alamat Pengiriman Hadiah" oninput="sync()">
+                <input type="text" id="g-map" class="inp" placeholder="Link Maps Alamat" oninput="sync()">
+                <div class="grid grid-cols-3 gap-1">
+                    <input type="text" id="g-b" class="inp" placeholder="Bank" oninput="sync()">
+                    <input type="text" id="g-n" class="inp" placeholder="Nama" oninput="sync()">
+                    <input type="text" id="g-r" class="inp" placeholder="No Rek" oninput="sync()">
+                </div>
+            </div>
+        </div>
+
+        <div class="absolute bottom-0 left-0 w-[420px] p-6 bg-[#0f1115] border-t border-white/5">
+            <button onclick="saveJS()" class="btn-save w-full py-4 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-amber-900/20">
+                <i data-lucide="save" class="w-5"></i> Simpan ke Data.js
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col bg-[#050608]">
+        <div class="p-4 flex justify-center gap-4 bg-[#0f1115]/80 backdrop-blur-md border-b border-white/5">
+            <button onclick="resize('mobile')" class="p-3 bg-white/5 rounded-xl hover:text-amber-500 transition"><i data-lucide="smartphone" class="w-5"></i></button>
+            <button onclick="resize('desktop')" class="p-3 bg-white/5 rounded-xl hover:text-amber-500 transition"><i data-lucide="monitor" class="w-5"></i></button>
+        </div>
+        <div class="flex-1 flex justify-center items-center p-8 overflow-hidden">
+            <div id="p-frame" class="w-[393px] h-[852px] bg-white rounded-[40px] shadow-2xl border-[10px] border-[#1a1d23] overflow-hidden relative transition-all duration-500">
+                <iframe id="viewer" src="viewer.html" class="w-full h-full border-none"></iframe>
+            </div>
+        </div>
+    </main>
+
+    <script>
+
+        // Tambahkan input file tersembunyi untuk import jika belum ada di HTML
+// <input type="file" id="import-file" class="hidden" accept=".js" onchange="processImport(event)">
+
+function importData() {
+    // Memicu klik pada input file tersembunyi
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.js';
+    input.onchange = e => processImport(e);
+    input.click();
+}
+
+function processImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const rawContent = e.target.result;
+            // Menghapus string "const weddingData =" agar tersisa JSON murni
+            const jsonString = rawContent.replace(/const weddingData\s*=\s*/, '').replace(/;$/, '');
+            const data = JSON.parse(jsonString);
+            
+            // Masukkan data ke form secara otomatis
+            mapDataToForm(data);
+            
+            // Update Preview (Sync)
+            sync();
+            alert("Data berhasil dimuat!");
+        } catch (err) {
+            console.error(err);
+            alert("Format file tidak valid atau rusak.");
+        }
+    };
+    reader.readAsText(file);
+}
+
+function mapDataToForm(d) {
+    // 1. General & Theme
+    if(d.theme) document.getElementById('f-theme').value = d.theme;
+    
+    // 2. Mempelai Pria
+    if(d.m1) {
+        document.getElementById('m1-nl').value = d.m1.nl || '';
+        document.getElementById('m1-np').value = d.m1.np || '';
+        document.getElementById('m1-ay').value = d.m1.ay || '';
+        document.getElementById('m1-ib').value = d.m1.ib || '';
+        if(d.m1.f) {
+            m1 = d.m1.f; // simpan ke variabel global
+            document.getElementById('m1-img').src = m1;
+            document.getElementById('m1-pre').classList.remove('hidden');
+        }
+    }
+
+    // 3. Mempelai Wanita
+    if(d.m2) {
+        document.getElementById('m2-nl').value = d.m2.nl || '';
+        document.getElementById('m2-np').value = d.m2.np || '';
+        document.getElementById('m2-ay').value = d.m2.ay || '';
+        document.getElementById('m2-ib').value = d.m2.ib || '';
+        if(d.m2.f) {
+            m2 = d.m2.f; // simpan ke variabel global
+            document.getElementById('m2-img').src = m2;
+            document.getElementById('m2-pre').classList.remove('hidden');
+        }
+    }
+
+    // 4. Akad & Resepsi
+    if(d.ak) {
+        document.getElementById('ak-tgl').value = d.ak.tgl || '';
+        document.getElementById('ak-js').value = d.ak.js || '';
+        document.getElementById('ak-je').value = d.ak.je || '';
+        document.getElementById('ak-lok').value = d.ak.lok || '';
+        document.getElementById('ak-alm').value = d.ak.alm || '';
+        document.getElementById('ak-map').value = d.ak.map || '';
+    }
+    if(d.re) {
+        document.getElementById('re-tgl').value = d.re.tgl || '';
+        document.getElementById('re-js').value = d.re.js || '';
+        document.getElementById('re-je').value = d.re.je || '';
+        document.getElementById('re-lok').value = d.re.lok || '';
+        document.getElementById('re-alm').value = d.re.alm || '';
+        document.getElementById('re-map').value = d.re.map || '';
+    }
+
+    // 5. Galeri
+    if(d.gal) {
+        gal = d.gal; // simpan ke variabel global
+        renderGal(); // panggil fungsi render gallery yang sudah ada
+    }
+
+    // 6. Story, Quotes, & Music
+    document.getElementById('f-story').value = d.story || '';
+    document.getElementById('f-quote').value = d.quote || '';
+    if(d.mu) mu = d.mu; // simpan audio ke global
+
+    // 7. Gift
+    if(d.gift) {
+        document.getElementById('g-alm').value = d.gift.alm || '';
+        document.getElementById('g-map').value = d.gift.map || '';
+        document.getElementById('g-b').value = d.gift.b || '';
+        document.getElementById('g-n').value = d.gift.n || '';
+        document.getElementById('g-r').value = d.gift.r || '';
+    }
+}
+
+        let mu="", m1="", m2="", gal=[];
+
+        function handleFile(e, type) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            const prog = document.getElementById(type+'-prog');
+            const fill = document.getElementById(type+'-fill');
+            
+            prog.style.display = 'block';
+            reader.onprogress = (ev) => fill.style.width = (ev.loaded/ev.total)*100 + '%';
+            reader.onload = () => {
+                if(type === 'mu') mu = reader.result;
+                else if(type === 'm1') { m1 = reader.result; document.getElementById('m1-img').src = m1; document.getElementById('m1-pre').classList.remove('hidden'); }
+                else if(type === 'm2') { m2 = reader.result; document.getElementById('m2-img').src = m2; document.getElementById('m2-pre').classList.remove('hidden'); }
+                sync();
+                setTimeout(() => prog.style.display = 'none', 1000);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleGal(e) {
+            if(gal.length >= 10) return;
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            document.getElementById('gal-prog').style.display = 'block';
+            reader.onload = () => {
+                gal.push(reader.result);
+                renderGal();
+                sync();
+                if(gal.length >= 10) document.getElementById('btn-gal-box').style.display = 'none';
+                document.getElementById('gal-prog').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderGal() {
+            document.getElementById('gal-pre').innerHTML = gal.map((s,i) => `
+                <div class="relative aspect-square">
+                    <img src="${s}" class="w-full h-full object-cover rounded-lg border border-white/10">
+                    <button onclick="gal.splice(${i},1);renderGal();sync();" class="absolute -top-1 -right-1 bg-red-500 rounded-full w-4 h-4 text-[8px] flex items-center justify-center">×</button>
+                </div>
+            `).join('');
+            document.getElementById('btn-gal-box').style.display = gal.length >= 10 ? 'none' : 'block';
+        }
+
+        function removeFile(t) {
+            if(t==='m1') m1 = ""; else m2 = "";
+            document.getElementById(t+'-pre').classList.add('hidden');
+            sync();
+        }
+
+        function sync() {
+            const data = {
+                theme: document.getElementById('f-theme').value, mu,
+                m1: { nl: document.getElementById('m1-nl').value, np: document.getElementById('m1-np').value, ay: document.getElementById('m1-ay').value, ib: document.getElementById('m1-ib').value, f: m1 },
+                m2: { nl: document.getElementById('m2-nl').value, np: document.getElementById('m2-np').value, ay: document.getElementById('m2-ay').value, ib: document.getElementById('m2-ib').value, f: m2 },
+                ak: { tgl: document.getElementById('ak-tgl').value, js: document.getElementById('ak-js').value, je: document.getElementById('ak-je').value, lok: document.getElementById('ak-lok').value, alm: document.getElementById('ak-alm').value, map: document.getElementById('ak-map').value },
+                re: { tgl: document.getElementById('re-tgl').value, js: document.getElementById('re-js').value, je: document.getElementById('re-je').value, lok: document.getElementById('re-lok').value, alm: document.getElementById('re-alm').value, map: document.getElementById('re-map').value },
+                gal, story: document.getElementById('f-story').value, quote: document.getElementById('f-quote').value,
+                gift: { alm: document.getElementById('g-alm').value, map: document.getElementById('g-map').value, b: document.getElementById('g-b').value, n: document.getElementById('g-n').value, r: document.getElementById('g-r').value }
+            };
+            document.getElementById('viewer').contentWindow.postMessage(data, '*');
+        }
+
+        function resize(mode) {
+            const f = document.getElementById('p-frame');
+            if(mode === 'mobile') { f.style.width='393px'; f.style.height='852px'; f.style.borderRadius='40px'; f.style.borderWidth='10px'; }
+            else { f.style.width='100%'; f.style.height='100%'; f.style.borderRadius='0'; f.style.borderWidth='0'; }
+        }
+
+        function saveJS() {
+            const content = "const weddingData = " + JSON.stringify(/* re-collect data object */ {
+                theme: document.getElementById('f-theme').value, mu,
+                m1: { nl: document.getElementById('m1-nl').value, np: document.getElementById('m1-np').value, ay: document.getElementById('m1-ay').value, ib: document.getElementById('m1-ib').value, f: m1 },
+                m2: { nl: document.getElementById('m2-nl').value, np: document.getElementById('m2-np').value, ay: document.getElementById('m2-ay').value, ib: document.getElementById('m2-ib').value, f: m2 },
+                ak: { tgl: document.getElementById('ak-tgl').value, js: document.getElementById('ak-js').value, je: document.getElementById('ak-je').value, lok: document.getElementById('ak-lok').value, alm: document.getElementById('ak-alm').value, map: document.getElementById('ak-map').value },
+                re: { tgl: document.getElementById('re-tgl').value, js: document.getElementById('re-js').value, je: document.getElementById('re-je').value, lok: document.getElementById('re-lok').value, alm: document.getElementById('re-alm').value, map: document.getElementById('re-map').value },
+                gal, story: document.getElementById('f-story').value, quote: document.getElementById('f-quote').value,
+                gift: { alm: document.getElementById('g-alm').value, map: document.getElementById('g-map').value, b: document.getElementById('g-b').value, n: document.getElementById('g-n').value, r: document.getElementById('g-r').value }
+            }, null, 4);
+            const blob = new Blob([content], {type: 'text/javascript'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'data.js'; a.click();
+        }
+        lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,600&family=Plus+Jakarta+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        .theme-luxury { --p: #d4af37; --bg: #ffffff; --t: #1a1a1a; --s: #f9f6f0; }
+        .theme-dark { --p: #fbbf24; --bg: #0f1115; --t: #f1f5f9; --s: #1a1d23; }
+        .theme-modern { --p: #000000; --bg: #ffffff; --t: #000000; --s: #f3f4f6; }
+        .theme-floral { --p: #db2777; --bg: #fff5f7; --t: #831843; --s: #fce7f3; }
+        .theme-emerald { --p: #065f46; --bg: #ffffff; --t: #064e3b; --s: #ecfdf5; }
+        .theme-rosegold { --p: #e2a08d; --bg: #fffcfb; --t: #4a3731; --s: #f8ece8; }
+        .theme-royal { --p: #1e3a8a; --bg: #ffffff; --t: #1e1b4b; --s: #eff6ff; }
+        .theme-earthy { --p: #a78b71; --bg: #fdfbf9; --t: #433422; --s: #f3eee8; }
+        .theme-sage { --p: #708238; --bg: #fcfdfa; --t: #323a1a; --s: #f1f4e9; }
+        .theme-velvet { --p: #7f1d1d; --bg: #fffafb; --t: #450a0a; --s: #fef2f2; }
+
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg); color: var(--t); transition: 0.5s; overflow-x: hidden; }
+        .font-serif { font-family: 'Cormorant Garamond', serif; }
+        .reveal { opacity: 0; transform: translateY(30px); transition: 1s all ease; }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        .btn-premium { background: var(--p); color: white; padding: 12px 24px; border-radius: 50px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px; }
+        .card-premium { background: var(--s); border-radius: 30px; padding: 40px 24px; }
+        .music-ctrl { position: fixed; bottom: 20px; left: 20px; width: 45px; height: 45px; background: var(--p); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 1000; cursor: pointer; }
+        .spinning { animation: spin 5s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="theme-luxury">
+    <div id="welcome" class="fixed inset-0 z-[2000] flex flex-col items-center justify-center p-6 text-center bg-[var(--bg)] transition-all duration-1000">
+        <p class="text-[10px] tracking-[0.5em] uppercase opacity-60 mb-4">The Wedding of</p>
+        <h1 id="w-names" class="font-serif text-5xl italic text-[var(--p)] mb-2">Pria & Wanita</h1>
+        <p id="w-tgl" class="text-sm tracking-[0.2em] mb-12"></p>
+        <button onclick="openInv()" class="btn-premium"><i data-lucide="mail-open" class="w-4"></i> Buka Undangan</button>
+    </div>
+
+    <section class="h-screen flex flex-col items-center justify-center text-center px-6">
+        <p class="text-[10px] tracking-[0.5em] uppercase opacity-60 mb-6">The Wedding of</p>
+        <h2 id="h-full-names" class="font-serif text-5xl md:text-7xl italic mb-6 leading-tight"></h2>
+        <p id="h-tgl" class="text-sm tracking-[0.4em] font-light border-y py-3 border-current px-6"></p>
+    </section>
+
+    <section class="py-24 px-6 text-center bg-black/[0.02] reveal">
+        <h3 class="font-serif text-4xl mb-12 italic text-[var(--p)]">The Happy Day</h3>
+        <div id="timer" class="flex justify-center gap-4 mb-16"></div>
+        <div id="v-quote" class="max-w-2xl mx-auto italic font-serif text-xl opacity-80 leading-relaxed"></div>
+    </section>
+
+    <section class="py-24 px-6 text-center reveal">
+        <p class="text-sm italic mb-12 max-w-lg mx-auto leading-relaxed">Assalamu ‘alaikum warahmatullahi wabarakatuh<br><br>Maha Suci Allah yang menciptakan makhluk-Nya berpasang-pasangan. Ya Allah, semoga ridho-Mu mengiringi pernikahan kami.</p>
+        <div class="grid md:grid-cols-2 gap-16 max-w-5xl mx-auto mb-20">
+            <div>
+                <img id="v-m1-f" class="w-48 h-48 mx-auto rounded-full object-cover mb-6 ring-4 ring-offset-4 ring-[var(--p)]">
+                <h3 id="v-m1-nl" class="font-serif text-3xl italic mb-2"></h3>
+                <p class="text-xs opacity-70">Anak pertama dari:</p>
+                <p id="v-m1-ot" class="text-sm font-semibold mt-1"></p>
+            </div>
+            <div>
+                <img id="v-m2-f" class="w-48 h-48 mx-auto rounded-full object-cover mb-6 ring-4 ring-offset-4 ring-[var(--p)]">
+                <h3 id="v-m2-nl" class="font-serif text-3xl italic mb-2"></h3>
+                <p class="text-xs opacity-70">Anak pertama dari:</p>
+                <p id="v-m2-ot" class="text-sm font-semibold mt-1"></p>
+            </div>
+        </div>
+        <div class="max-w-2xl mx-auto card-premium mt-10">
+            <h3 class="font-serif text-3xl italic mb-6">Akad & Resepsi</h3>
+            <div class="space-y-8 text-center">
+                <div>
+                    <h4 class="font-bold text-[var(--p)] uppercase text-xs mb-2">Akad Nikah</h4>
+                    <p id="v-ak-t" class="font-bold"></p>
+                    <p id="v-ak-j" class="text-xs mb-2 opacity-70"></p>
+                    <p id="v-ak-l" class="text-sm font-bold"></p>
+                    <p id="v-ak-a" class="text-[10px] opacity-60 mb-4"></p>
+                    <a id="v-ak-m" target="_blank" class="btn-premium py-1.5 px-4 text-[9px]">Lokasi</a>
+                </div>
+                <hr class="opacity-10">
+                <div>
+                    <h4 class="font-bold text-[var(--p)] uppercase text-xs mb-2">Resepsi</h4>
+                    <p id="v-re-t" class="font-bold"></p>
+                    <p id="v-re-j" class="text-xs mb-2 opacity-70"></p>
+                    <p id="v-re-l" class="text-sm font-bold"></p>
+                    <p id="v-re-a" class="text-[10px] opacity-60 mb-4"></p>
+                    <a id="v-re-m" target="_blank" class="btn-premium py-1.5 px-4 text-[9px]">Lokasi</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 px-6 reveal">
+        <h3 class="text-center font-serif text-4xl mb-12 italic text-[var(--p)]">Our Gallery</h3>
+        <div id="v-gal" class="grid grid-cols-2 md:grid-cols-4 gap-2 max-w-5xl mx-auto"></div>
+    </section>
+
+    <section class="py-24 px-8 text-center bg-black/[0.02] reveal">
+        <h3 id="v-st-title" class="font-serif text-4xl italic mb-8">Our Story</h3>
+        <p id="v-story" class="text-sm leading-relaxed opacity-70 max-w-2xl mx-auto whitespace-pre-line"></p>
+    </section>
+
+    <section class="py-24 px-6 text-center reveal">
+        <h3 class="font-serif text-4xl mb-8 italic text-[var(--p)]">Wedding Gift</h3>
+        <div class="max-w-md mx-auto card-premium">
+            <p id="v-gf-b" class="text-xs font-bold uppercase opacity-40"></p>
+            <p id="v-gf-n" class="font-bold mt-1"></p>
+            <p id="v-gf-r" class="text-2xl font-serif tracking-widest my-2"></p>
+            <p id="v-gf-a" class="text-[10px] opacity-60"></p>
+        </div>
+    </section>
+
+    <section class="py-24 px-6 text-center">
+        <p class="text-sm italic mb-4 opacity-60">Kami yang berbahagia,</p>
+        <h4 id="v-cl-n" class="font-serif text-5xl italic text-[var(--p)] mb-4"></h4>
+        <p class="text-[10px] tracking-widest opacity-40 uppercase">Terima kasih</p>
+    </section>
+
+    <div class="music-ctrl" onclick="togglePlay()"><i data-lucide="music" id="mu-icon"></i></div>
+    <audio id="bgm" loop></audio>
+
+    <script>
+        let playing = false;
+        const audio = document.getElementById('bgm');
+
+        function update(d) {
+            if (!d) return;
+            document.body.className = d.theme || 'theme-luxury';
+            const ns = `${d.m1?.np || ''} & ${d.m2?.np || ''}`;
+            const nf = `${d.m1?.nl || ''} & ${d.m2?.nl || ''}`;
+            
+            document.getElementById('w-names').innerText = ns;
+            document.getElementById('w-tgl').innerText = d.ak?.tgl || '';
+            document.getElementById('h-full-names').innerText = ns;
+            document.getElementById('h-tgl').innerText = d.ak?.tgl || '';
+            document.getElementById('v-cl-n').innerText = ns;
+            
+            document.getElementById('v-m1-nl').innerText = d.m1?.nl || '';
+            document.getElementById('v-m1-ot').innerText = `Bpk. ${d.m1?.ay || ''} dan Ibu ${d.m1?.ib || ''}`;
+            if(d.m1?.f) document.getElementById('v-m1-f').src = d.m1.f;
+            document.getElementById('v-m2-nl').innerText = d.m2?.nl || '';
+            document.getElementById('v-m2-ot').innerText = `Bpk. ${d.m2?.ay || ''} dan Ibu ${d.m2?.ib || ''}`;
+            if(d.m2?.f) document.getElementById('v-m2-f').src = d.m2.f;
+
+            document.getElementById('v-ak-t').innerText = d.ak?.tgl || '';
+            document.getElementById('v-ak-j').innerText = `${d.ak?.js || ''} - ${d.ak?.je || ''} WIB`;
+            document.getElementById('v-ak-l').innerText = d.ak?.lok || '';
+            document.getElementById('v-ak-a').innerText = d.ak?.alm || '';
+            document.getElementById('v-ak-m').href = d.ak?.map || '#';
+
+            document.getElementById('v-re-t').innerText = d.re?.tgl || '';
+            document.getElementById('v-re-j').innerText = `${d.re?.js || ''} - ${d.re?.je || ''} WIB`;
+            document.getElementById('v-re-l').innerText = d.re?.lok || '';
+            document.getElementById('v-re-a').innerText = d.re?.alm || '';
+            document.getElementById('v-re-m').href = d.re?.map || '#';
+
+            if(d.gal) document.getElementById('v-gal').innerHTML = d.gal.map(i => `<img src="${i}" class="aspect-square object-cover rounded-xl shadow-sm">`).join('');
+            document.getElementById('v-st-title').innerText = `${ns} Story`;
+            document.getElementById('v-story').innerText = d.story || '';
+            document.getElementById('v-quote').innerText = d.quote || '';
+            document.getElementById('v-gf-b').innerText = d.gift?.b || '';
+            document.getElementById('v-gf-n').innerText = d.gift?.n || '';
+            document.getElementById('v-gf-r').innerText = d.gift?.r || '';
+            document.getElementById('v-gf-a').innerText = d.gift?.alm || '';
+
+            if(d.mu && audio.src !== d.mu) audio.src = d.mu;
+            if(d.ak?.tgl) startTimer(d.ak.tgl);
+            lucide.createIcons();
+        }
+
+        // UNTUK FILE JADI: Memuat data dari data.js secara otomatis
+        window.addEventListener('load', () => {
+            const s = document.createElement('script');
+            s.src = 'data-yuda.js'; // Memanggil file data.js yang ada di folder yang sama
+            s.onload = () => { 
+                if(typeof weddingData !== 'undefined') {
+                    update(weddingData); 
+                } else {
+                    console.error("Data pernikahan tidak ditemukan di data.js");
+                }
+            };
+            document.head.appendChild(s);
+        });
+
+        function openInv() {
+            document.getElementById('welcome').style.transform = 'translateY(-100%)';
+            if(audio.src) { audio.play(); playing = true; updateMusicUI(); }
+        }
+
+        function togglePlay() {
+            playing ? audio.pause() : audio.play();
+            playing = !playing;
+            updateMusicUI();
+        }
+
+        function updateMusicUI() {
+            const icon = document.getElementById('mu-icon');
+            icon.setAttribute('data-lucide', playing ? 'pause' : 'music');
+            playing ? document.querySelector('.music-ctrl').classList.add('spinning') : document.querySelector('.music-ctrl').classList.remove('spinning');
+            lucide.createIcons();
+        }
+
+        function startTimer(t) {
+            const target = new Date(t).getTime();
+            setInterval(() => {
+                const diff = target - new Date().getTime();
+                if(diff < 0) return;
+                const d = Math.floor(diff / (1000*60*60*24)), h = Math.floor((diff % (1000*60*60*24)) / (1000*60*60)), m = Math.floor((diff % (1000*60*60)) / (1000*60)), s = Math.floor((diff % (1000*60)) / 1000);
+                document.getElementById('timer').innerHTML = `<div class='card-premium !p-4 min-w-[65px]'><b>${d}</b><br><small class='text-[8px] uppercase'>Hari</small></div><div class='card-premium !p-4 min-w-[65px]'><b>${h}</b><br><small class='text-[8px] uppercase'>Jam</small></div><div class='card-premium !p-4 min-w-[65px]'><b>${m}</b><br><small class='text-[8px] uppercase'>Min</small></div><div class='card-premium !p-4 min-w-[65px]'><b>${s}</b><br><small class='text-[8px] uppercase'>Det</small></div>`;
+            }, 1000);
+        }
+
+        window.onscroll = () => document.querySelectorAll('.reveal').forEach(el => el.getBoundingClientRect().top < window.innerHeight - 50 ? el.classList.add('active') : null);
+    </script>
+</body>
+</html>

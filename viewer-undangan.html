@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Undangan Pernikahan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,600&family=Montserrat:wght@300;400;600&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    
+    <style id="theme-styles">
+        /* Base Styling */
+        body { font-family: 'Montserrat', sans-serif; transition: 0.5s; }
+        .font-serif { font-family: 'Playfair Display', serif; }
+        
+        /* Responsive Wrapper: Identik dengan Preview di Builder */
+        .main-wrapper { 
+            width: 100%; 
+            max-width: 480px; /* Maksimal lebar mobile */
+            margin: 0 auto; 
+            background: white; 
+            min-height: 100vh;
+            box-shadow: 0 0 50px rgba(0,0,0,0.1);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* THEME DEFINITIONS */
+        .theme-luxury { --primary: #d4af37; --bg: #ffffff; --text: #1e293b; --accent: #f8fafc; }
+        .theme-minimal { --primary: #1e293b; --bg: #0f172a; --text: #f1f5f9; --accent: #1e293b; }
+
+        /* Terapkan variabel tema */
+        .main-wrapper.theme-luxury { background: var(--bg); color: var(--text); }
+        .main-wrapper.theme-minimal { background: var(--bg); color: var(--text); }
+        .main-wrapper.theme-minimal section { background: var(--bg); border-color: #334155; }
+        
+        /* Reveal Animation */
+        .reveal { opacity: 0; transform: translateY(30px); transition: 1s all ease; }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        /* Floating Music Button */
+        .music-btn { 
+            position: fixed; bottom: 20px; right: 20px; /* Di kanan bawah agar tidak tertutup jari */
+            width: 45px; height: 45px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            z-index: 999; cursor: pointer; color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            background: var(--primary, #d4af37);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="pv-root" class="main-wrapper">
+        <section class="h-screen flex flex-col items-center justify-center text-center p-8">
+            <p class="text-[10px] tracking-[0.5em] uppercase opacity-60 mb-4">The Wedding of</p>
+            <h1 id="hero-names" class="text-5xl font-serif italic mb-6">...</h1>
+            <p id="hero-date" class="text-xs tracking-[0.2em] font-bold py-2 border-y">...</p>
+        </section>
+
+        <section class="py-20 px-8 text-center reveal">
+            <p id="wedding-quote" class="italic font-serif text-xl mb-10 opacity-80"></p>
+            <div id="countdown" class="flex justify-center gap-3"></div>
+        </section>
+
+        <section class="py-20 px-6 text-center reveal">
+            <div class="mb-12">
+                <img id="m1-foto" class="w-32 h-32 mx-auto rounded-full object-cover mb-4 border-4 shadow-lg">
+                <h3 id="m1-nama" class="text-2xl font-serif italic"></h3>
+                <p id="m1-ortu" class="text-[10px] opacity-60 mt-2"></p>
+            </div>
+            <div class="text-3xl font-serif my-8 opacity-30 italic">&</div>
+            <div class="mb-12">
+                <img id="m2-foto" class="w-32 h-32 mx-auto rounded-full object-cover mb-4 border-4 shadow-lg">
+                <h3 id="m2-nama" class="text-2xl font-serif italic"></h3>
+                <p id="m2-ortu" class="text-[10px] opacity-60 mt-2"></p>
+            </div>
+        </section>
+
+        <section class="py-20 px-6 reveal">
+            <div class="space-y-4">
+                <div class="p-8 rounded-2xl border text-center shadow-sm">
+                    <h4 class="text-[10px] font-bold tracking-widest uppercase mb-4 opacity-50">Akad Nikah</h4>
+                    <p id="ak-tgl" class="font-bold"></p>
+                    <p id="ak-lok" class="text-sm my-2"></p>
+                    <a id="ak-map" target="_blank" class="inline-block mt-4 text-[10px] font-bold border-b-2 border-amber-500">GOOGLE MAPS</a>
+                </div>
+                <div class="p-8 rounded-2xl border text-center shadow-sm">
+                    <h4 class="text-[10px] font-bold tracking-widest uppercase mb-4 opacity-50">Resepsi</h4>
+                    <p id="re-tgl" class="font-bold"></p>
+                    <p id="re-lok" class="text-sm my-2"></p>
+                    <a id="re-map" target="_blank" class="inline-block mt-4 text-[10px] font-bold border-b-2 border-amber-500">GOOGLE MAPS</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-20 px-4 reveal">
+            <h3 class="text-center font-serif text-2xl mb-8 italic">Our Gallery</h3>
+            <div id="ga-grid" class="grid grid-cols-2 gap-2"></div>
+        </section>
+
+        <section class="py-20 px-8 text-center reveal">
+            <h3 class="font-serif text-2xl mb-6 italic">Our Story</h3>
+            <p id="story-text" class="text-xs leading-relaxed opacity-70 italic"></p>
+        </section>
+
+        <section class="py-20 px-8 text-center reveal">
+            <h3 class="font-serif text-2xl mb-8 italic">Wedding Gift</h3>
+            <div class="p-6 bg-slate-50 rounded-xl mb-4 text-slate-800">
+                <p class="text-[9px] font-bold opacity-40 uppercase">Transfer Bank</p>
+                <p id="gift-info" class="font-bold mt-2"></p>
+                <p id="gift-rek" class="text-xl tracking-wider mt-1"></p>
+            </div>
+        </section>
+    </div>
+
+    <div class="music-btn" onclick="togglePlay()">
+        <i data-lucide="music" id="mi"></i>
+    </div>
+    <audio id="bgm" loop></audio>
+
+    <script src="undangan/data-yuda-hani.js"></script>
+    <script>
+        function applyData() {
+            const d = weddingData;
+            const root = document.getElementById('pv-root');
+            
+            // 1. Sinkronisasi Tema
+            root.classList.add(d.config.theme || 'theme-luxury');
+
+            // 2. Load Text & Images
+            document.getElementById('hero-names').innerText = `${d.mempelai1.namaPanggilan} & ${d.mempelai2.namaPanggilan}`;
+            document.getElementById('hero-date').innerText = d.acara.tanggal;
+            document.getElementById('wedding-quote').innerText = d.quotes;
+            
+            document.getElementById('m1-foto').src = d.mempelai1.foto;
+            document.getElementById('m1-nama').innerText = d.mempelai1.namaLengkap;
+            document.getElementById('m1-ortu').innerText = `Putra dari Bpk ${d.mempelai1.ayah} & Ibu ${d.mempelai1.ibu}`;
+            
+            document.getElementById('m2-foto').src = d.mempelai2.foto;
+            document.getElementById('m2-nama').innerText = d.mempelai2.namaLengkap;
+            document.getElementById('m2-ortu').innerText = `Putri dari Bpk ${d.mempelai2.ayah} & Ibu ${d.mempelai2.ibu}`;
+
+            document.getElementById('ak-tgl').innerText = d.acara.tanggal;
+            document.getElementById('ak-lok').innerText = d.acara.lokasi;
+            document.getElementById('ak-map').href = d.acara.maps;
+
+            document.getElementById('re-tgl').innerText = d.resepsi.tanggal;
+            document.getElementById('re-lok').innerText = d.resepsi.lokasi;
+            document.getElementById('re-map').href = d.resepsi.maps;
+
+            document.getElementById('story-text').innerText = d.story;
+            document.getElementById('gift-info').innerText = `${d.gift.bank} a/n ${d.gift.namaRek}`;
+            document.getElementById('gift-rek').innerText = d.gift.noRek;
+
+            // 3. Render Gallery
+            const grid = document.getElementById('ga-grid');
+            d.galeri.forEach(src => {
+                grid.innerHTML += `<img src="${src}" class="w-full aspect-square object-cover rounded-lg shadow-sm">`;
+            });
+
+            // 4. Load Audio
+            if(d.config.music) document.getElementById('bgm').src = d.config.music;
+
+            lucide.createIcons();
+            startCountdown(d.acara.tanggal);
+        }
+
+        function startCountdown(date) {
+            const target = new Date(date).getTime();
+            const el = document.getElementById('countdown');
+            setInterval(() => {
+                const now = new Date().getTime();
+                const diff = target - now;
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                
+                el.innerHTML = `
+                    <div class="text-center"><span class="block text-2xl font-bold">${days}</span><span class="text-[8px] uppercase">Hari</span></div>
+                    <div class="text-center"><span class="block text-2xl font-bold">${hours}</span><span class="text-[8px] uppercase">Jam</span></div>
+                `;
+            }, 1000);
+        }
+
+        let playing = false;
+        function togglePlay() {
+            const a = document.getElementById('bgm');
+            playing = !playing;
+            playing ? a.play() : a.pause();
+            document.getElementById('mi').setAttribute('data-lucide', playing ? 'pause' : 'music');
+            lucide.createIcons();
+        }
+
+        window.addEventListener('scroll', () => {
+            document.querySelectorAll('.reveal').forEach(el => {
+                if(el.getBoundingClientRect().top < window.innerHeight - 50) el.classList.add('active');
+            });
+        });
+
+        window.onload = applyData;
+    </script>
+</body>
+</html>

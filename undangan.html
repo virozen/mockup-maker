@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Undangan Pro - Premium Builder v4.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,600&family=Montserrat:wght@300;400;600&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <style>
+        :root { --gold: #d4af37; --dark: #0f172a; }
+        body { font-family: 'Montserrat', sans-serif; background: #020617; color: #f1f5f9; height: 100vh; display: flex; overflow: hidden; }
+        
+        /* Layout */
+        .sidebar { width: 450px; background: #0f172a; border-right: 1px solid #1e293b; display: flex; flex-direction: column; }
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 24px; scrollbar-width: thin; }
+        .preview-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #1e293b 0%, #020617 100%); position: relative; }
+        
+        /* UI Components */
+        .form-card { background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #334155; }
+        .label-gold { color: var(--gold); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 15px; display: block; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+        .inp-modern { width: 100%; background: #020617; border: 1px solid #334155; border-radius: 8px; padding: 10px 14px; color: white; font-size: 13px; outline: none; margin-bottom: 10px; transition: 0.3s; }
+        .inp-modern:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2); }
+        
+        /* Mockup */
+        .mockup { transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1); background: white; position: relative; overflow: hidden; box-shadow: 0 50px 100px -20px rgba(0,0,0,0.8); }
+        .view-mobile { width: 375px; height: 780px; border: 12px solid #334155; border-radius: 40px; }
+        .view-desktop { width: 90%; height: 85%; border: 8px solid #334155; border-radius: 12px; }
+        .screen { height: 100%; overflow-y: auto; background: white; color: #1e293b; position: relative; scroll-behavior: smooth; }
+
+        /* Themes */
+        .theme-luxury { --acc: #d4af37; --bg: #fffcf5; font-family: 'Playfair Display', serif; }
+        .theme-minimal { --acc: #000000; --bg: #ffffff; font-family: 'Montserrat', sans-serif; }
+        .theme-rose { --acc: #e11d48; --bg: #fff1f2; font-family: 'Cormorant Garamond', serif; }
+        .theme-midnight { --acc: #818cf8; --bg: #0f172a; color: white !important; }
+
+        /* Helpers */
+        .prog-bg { height: 4px; background: #020617; border-radius: 4px; overflow: hidden; display: none; margin: 10px 0; }
+        .prog-fill { height: 100%; background: var(--gold); width: 0%; transition: 0.3s; }
+        .music-btn { position: absolute; bottom: 20px; left: 20px; width: 44px; height: 44px; background: var(--gold); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 100; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    
+        /* Styling Modern untuk Input Sidebar */
+.form-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.label-gold {
+    color: #fbbf24;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 15px;
+    display: block;
+    border-left: 3px solid #fbbf24;
+    padding-left: 10px;
+}
+
+.inp {
+    width: 100%;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #f1f5f9;
+    font-size: 13px;
+    margin-bottom: 12px;
+    outline: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.inp:focus {
+    border-color: #fbbf24;
+    background: #1e293b;
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+}
+
+.inp::placeholder {
+    color: #64748b;
+    font-size: 12px;
+}
+
+/* Styling Progress Bar */
+.prog-bg {
+    height: 6px;
+    background: #0f172a;
+    border-radius: 10px;
+    overflow: hidden;
+    display: none; /* Muncul saat upload */
+}
+
+.prog-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* Preview Foto Styling */
+#m1-pre img, #m2-pre img {
+    border: 2px solid #334155;
+    transition: transform 0.3s ease;
+}
+
+#m1-pre:hover img, #m2-pre:hover img {
+    transform: scale(1.05);
+    border-color: #fbbf24;
+}
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+            <h1 class="text-xl font-bold text-amber-500 tracking-tighter flex items-center gap-2">
+                <i data-lucide="crown"></i> UNDANGAN PRO
+            </h1>
+            <button onclick="document.getElementById('imp-json').click()" class="text-[10px] font-bold bg-slate-700 px-3 py-1.5 rounded">IMPORT</button>
+            <input type="file" id="imp-json" class="hidden" accept=".json" onchange="importData(event)">
+        </div>
+
+        <div class="sidebar-content">
+            <div class="form-card">
+                <span class="label-gold">Template & Musik</span>
+                <select id="f-theme" class="inp-modern" onchange="sync()">
+                    <option value="theme-luxury">Luxury Gold</option>
+                    <option value="theme-minimal">Minimalist Black</option>
+                    <option value="theme-rose">Romantic Rose</option>
+                    <option value="theme-midnight">Midnight Premium</option>
+                </select>
+                <button onclick="document.getElementById('f-mu').click()" class="w-full py-3 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-lg text-[10px] font-bold tracking-widest uppercase">Pilih Musik Latar</button>
+                <input type="file" id="f-mu" class="hidden" accept="audio/*" onchange="upMu(event)">
+                <div id="mu-prog" class="prog-bg"><div id="mu-fill" class="prog-fill"></div></div>
+            </div>
+
+            <div class="form-card">
+                <span class="label-gold">Mempelai 1 (Pria)</span>
+                <input type="text" id="m1-n-lengkap" class="inp" placeholder="Nama Lengkap & Gelar" oninput="sync()">
+                <input type="text" id="m1-n" class="inp" placeholder="Nama Panggilan" oninput="sync()">
+                
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                    <input type="text" id="m1-ay" class="inp" placeholder="Nama Ayah" oninput="sync()">
+                    <input type="text" id="m1-ib" class="inp" placeholder="Nama Ibu" oninput="sync()">
+                </div>
+                
+                <div class="mt-3">
+                    <div id="m1-pre" class="hidden mb-3 relative w-20 h-20 mx-auto">
+                        <img id="m1-thumb" class="w-full h-full object-cover rounded-full border-2 border-amber-500 shadow-md">
+                        <button onclick="removeImg(1)" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center">×</button>
+                    </div>
+                    <button onclick="document.getElementById('up-m1').click()" class="w-full py-2 bg-slate-800 border border-slate-700 rounded text-[10px] font-bold text-slate-300 hover:text-white transition">+ FOTO PRIA</button>
+                    <input type="file" id="up-m1" class="hidden" accept="image/*" onchange="upMempelai(event, 1)">
+                    <div id="m1-prog" class="prog-bg mt-2"><div id="m1-fill" class="prog-fill"></div></div>
+                </div>
+            </div>
+
+            <div class="form-card">
+                <span class="label-gold">Mempelai 2 (Wanita)</span>
+                <input type="text" id="m2-n-lengkap" class="inp" placeholder="Nama Lengkap & Gelar" oninput="sync()">
+                <input type="text" id="m2-n" class="inp" placeholder="Nama Panggilan" oninput="sync()">
+                
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                    <input type="text" id="m2-ay" class="inp" placeholder="Nama Ayah" oninput="sync()">
+                    <input type="text" id="m2-ib" class="inp" placeholder="Nama Ibu" oninput="sync()">
+                </div>
+                
+                <div class="mt-3">
+                    <div id="m2-pre" class="hidden mb-3 relative w-20 h-20 mx-auto">
+                        <img id="m2-thumb" class="w-full h-full object-cover rounded-full border-2 border-amber-500 shadow-md">
+                        <button onclick="removeImg(2)" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center">×</button>
+                    </div>
+                    <button onclick="document.getElementById('up-m2').click()" class="w-full py-2 bg-slate-800 border border-slate-700 rounded text-[10px] font-bold text-slate-300 hover:text-white transition">+ FOTO WANITA</button>
+                    <input type="file" id="up-m2" class="hidden" accept="image/*" onchange="upMempelai(event, 2)">
+                    <div id="m2-prog" class="prog-bg mt-2"><div id="m2-fill" class="prog-fill"></div></div>
+                </div>
+            </div>
+
+            <div class="form-card">
+                <span class="label-gold">Akad Nikah</span>
+                <input type="date" id="ak-t" class="inp-modern" oninput="sync()">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="time" id="ak-jm" class="inp-modern" oninput="sync()">
+                    <input type="time" id="ak-js" class="inp-modern" oninput="sync()">
+                </div>
+                <input type="text" id="ak-l" class="inp-modern" placeholder="Lokasi (Gedung/Rumah)" oninput="sync()">
+                <textarea id="ak-a" class="inp-modern h-20" placeholder="Alamat Lengkap" oninput="sync()"></textarea>
+                <input type="text" id="ak-m" class="inp-modern" placeholder="Link Google Maps" oninput="sync()">
+            </div>
+
+            <div class="form-card">
+                <span class="label-gold">Resepsi Pernikahan</span>
+                <input type="date" id="re-t" class="inp-modern" oninput="sync()">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="time" id="re-jm" class="inp-modern" oninput="sync()">
+                    <input type="time" id="re-js" class="inp-modern" oninput="sync()">
+                </div>
+                <input type="text" id="re-l" class="inp-modern" placeholder="Lokasi Resepsi" oninput="sync()">
+                <textarea id="re-a" class="inp-modern h-20" placeholder="Alamat Lengkap" oninput="sync()"></textarea>
+                <input type="text" id="re-m" class="inp-modern" placeholder="Link Google Maps" oninput="sync()">
+            </div>
+
+            <div class="form-card">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="label-gold mb-0 border-0">Galeri Pre-Wedding</span>
+                    <span id="ga-count" class="text-[10px] text-slate-500">0/10</span>
+                </div>
+                <div id="ga-list" class="grid grid-cols-5 gap-2 mb-4"></div>
+                <div id="ga-prog" class="prog-bg"><div id="ga-fill" class="prog-fill"></div></div>
+                <button onclick="document.getElementById('f-ga').click()" class="w-full py-4 border-2 border-dashed border-slate-700 rounded-xl text-[10px] font-bold text-slate-500 hover:text-amber-500 hover:border-amber-500 transition-all">+ TAMBAH FOTO</button>
+                <input type="file" id="f-ga" class="hidden" multiple accept="image/*" onchange="upGa(event)">
+            </div>
+
+            <div class="form-card">
+                <span class="label-gold">Quotes & Cerita</span>
+                <textarea id="f-q" class="inp-modern h-24" placeholder="Wedding Quote..." oninput="sync()"></textarea>
+                <textarea id="f-s" class="inp-modern h-32" placeholder="Cerita Perjalanan Cintamu..." oninput="sync()"></textarea>
+            </div>
+
+            <div class="form-card">
+                <span class="label-gold">Wedding Gift</span>
+                <input type="text" id="gf-a" class="inp-modern" placeholder="Alamat Pengiriman Hadiah" oninput="sync()">
+                <input type="text" id="gf-m" class="inp-modern" placeholder="Link Maps Alamat" oninput="sync()">
+                <div class="grid grid-cols-3 gap-1">
+                    <input type="text" id="gf-b" class="inp-modern text-[10px]" placeholder="Bank" oninput="sync()">
+                    <input type="text" id="gf-n" class="inp-modern text-[10px]" placeholder="Nama" oninput="sync()">
+                    <input type="text" id="gf-r" class="inp-modern text-[10px]" placeholder="No Rek" oninput="sync()">
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 bg-slate-900 border-t border-slate-800 grid grid-cols-2 gap-3">
+            <button onclick="exportToJS()" class="py-3 bg-slate-800 rounded-lg text-xs font-bold hover:bg-slate-700">Export to JS</button>
+            <button onclick="exportHTML()" class="py-3 bg-amber-600 rounded-lg text-xs font-bold shadow-lg shadow-amber-900/40 hover:bg-amber-500 transition-all">EXPORT HTML</button>
+        </div>
+    </aside>
+
+    <main class="preview-area">
+        <div class="flex gap-4 mb-6 z-10">
+            <button onclick="setMode('mobile')" class="p-3 bg-slate-800 rounded-full hover:bg-slate-700 transition"><i data-lucide="smartphone" class="w-5 text-amber-500"></i></button>
+            <button onclick="setMode('desktop')" class="p-3 bg-slate-800 rounded-full hover:bg-slate-700 transition"><i data-lucide="monitor" class="w-5 text-amber-500"></i></button>
+        </div>
+
+        <div id="m-frame" class="mockup view-mobile">
+            <iframe id="viewer" src="viewer-undangan.html" class="w-full h-full border-none"></iframe>
+            <!-- <div id="pv-root" class="screen theme-luxury">
+                <section class="h-full flex flex-col items-center justify-center text-center p-8 bg-[var(--bg)]">
+                    <p class="text-[10px] tracking-[0.5em] uppercase opacity-50 mb-4">The Wedding of</p>
+                    <h1 class="text-5xl font-serif italic mb-6"><span id="p-m1-n">Mempelai</span><br>&<br><span id="p-m2-n">Wanita</span></h1>
+                    <p id="p-hero-t" class="text-xs tracking-[0.3em] font-bold">01 JANUARI 2025</p>
+                    <div class="mt-20">
+                        <p class="text-[10px] opacity-40 mb-3 italic">Yth. Tamu Undangan</p>
+                        <button class="px-10 py-3 bg-[var(--acc)] text-white text-[10px] font-bold tracking-widest rounded-full">BUKA UNDANGAN</button>
+                    </div>
+                </section>
+
+                <section class="py-20 px-8 text-center bg-white">
+                    <h3 class="text-2xl font-serif italic mb-8">The Happy Day</h3>
+                    <div class="flex justify-center gap-6 mb-10">
+                        <div class="text-center"><span class="block text-2xl font-bold">00</span><small class="text-[8px] opacity-40 uppercase">Hari</small></div>
+                        <div class="text-center"><span class="block text-2xl font-bold">00</span><small class="text-[8px] opacity-40 uppercase">Jam</small></div>
+                        <div class="text-center"><span class="block text-2xl font-bold">00</span><small class="text-[8px] opacity-40 uppercase">Menit</small></div>
+                    </div>
+                    <p id="p-q" class="text-sm italic opacity-60 leading-relaxed font-serif px-4">"Cinta adalah satu jiwa yang menghuni dua tubuh."</p>
+                </section>
+
+                <section class="py-20 px-8 text-center bg-[var(--bg)]">
+                    <p class="text-xs italic mb-12 opacity-60 leading-relaxed">Assalamu ‘alaikum warahmatullahi wabarakatuh<br><br>Maha Suci Allah yang telah menciptakan makhluk-Nya berpasang-pasangan. Ya Allah, semoga ridho-Mu tercurah mengiringi pernikahan kami</p>
+                    
+                    <div class="mb-16">
+                        <img id="p-m1-img" class="w-32 h-32 mx-auto rounded-full object-cover mb-4 border-4 border-white shadow-lg bg-slate-200">
+                        <h4 id="p-m1-f" class="text-2xl font-serif italic">Nama Mempelai Pria</h4>
+                        <p class="text-[10px] opacity-50">Putra dari Bapak <span id="p-m1-ay">...</span> dan Ibu <span id="p-m1-ib">...</span></p>
+                    </div>
+                    <div class="text-3xl font-serif opacity-20 mb-16">&</div>
+                    <div class="mb-20">
+                        <img id="p-m2-img" class="w-32 h-32 mx-auto rounded-full object-cover mb-4 border-4 border-white shadow-lg bg-slate-200">
+                        <h4 id="p-m2-f" class="text-2xl font-serif italic">Nama Mempelai Wanita</h4>
+                        <p class="text-[10px] opacity-50">Putri dari Bapak <span id="p-m2-ay">...</span> dan Ibu <span id="p-m2-ib">...</span></p>
+                    </div>
+
+                    <h2 class="text-4xl font-serif italic mb-10">Save The Date</h2>
+                    <div class="space-y-8">
+                        <div class="p-8 border-2 border-slate-100 rounded-3xl bg-white/50">
+                            <h5 class="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-4">Akad Nikah</h5>
+                            <p id="p-ak-t" class="text-lg font-bold">01 Jan 2025</p>
+                            <p id="p-ak-j" class="text-[10px] mb-4">08:00 WIB s/d Selesai</p>
+                            <p id="p-ak-l" class="font-bold text-sm">Gedung Pernikahan</p>
+                            <p id="p-ak-a" class="text-[10px] opacity-50 mb-6 px-4">Jl. Jalan Menuju Bahagia</p>
+                            <button class="px-8 py-2.5 bg-slate-900 text-white text-[9px] font-bold rounded-full uppercase">Lihat Lokasi</button>
+                        </div>
+                        <div class="p-8 border-2 border-slate-100 rounded-3xl bg-white/50">
+                            <h5 class="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-4">Resepsi Pernikahan</h5>
+                            <p id="p-re-t" class="text-lg font-bold">01 Jan 2025</p>
+                            <p id="p-re-j" class="text-[10px] mb-4">11:00 WIB s/d Selesai</p>
+                            <p id="p-re-l" class="font-bold text-sm">Gedung Pernikahan</p>
+                            <p id="p-re-a" class="text-[10px] opacity-50 mb-6 px-4">Jl. Jalan Menuju Bahagia</p>
+                            <button class="px-8 py-2.5 bg-slate-900 text-white text-[9px] font-bold rounded-full uppercase">Lihat Lokasi</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="py-20 px-4 bg-white">
+                    <h3 class="text-center text-3xl font-serif italic mb-10">Our Gallery</h3>
+                    <div id="p-ga-grid" class="grid grid-cols-2 gap-2"></div>
+                </section>
+
+                <section class="py-20 px-8 text-center bg-slate-50">
+                    <h3 class="text-2xl font-serif italic mb-8">Our Love Story</h3>
+                    <p id="p-story" class="text-xs italic opacity-60 leading-relaxed"></p>
+                </section>
+
+                <section class="py-20 px-8 text-center bg-white">
+                    <h3 class="text-2xl font-serif italic mb-10">Wedding Gift</h3>
+                    <div class="p-8 bg-[var(--bg)] rounded-3xl mb-4 border border-slate-100">
+                        <p class="text-[9px] font-bold uppercase opacity-40 mb-2">Kirim Hadiah</p>
+                        <p id="p-gf-a" class="text-xs mb-4">...</p>
+                        <button class="text-[9px] font-bold text-amber-600">GOOGLE MAPS</button>
+                    </div>
+                    <div class="p-8 bg-[var(--bg)] rounded-3xl">
+                        <p class="text-[9px] font-bold uppercase opacity-40 mb-4">Informasi Rekening</p>
+                        <p id="p-gf-r" class="text-sm font-bold opacity-70">...</p>
+                    </div>
+                </section>
+
+                <section class="py-24 px-8 text-center bg-[var(--bg)] border-t">
+                    <p class="text-[10px] tracking-[0.4em] uppercase opacity-40 mb-8">Kami Yang Berbahagia</p>
+                    <h2 class="text-4xl font-serif italic mb-10"><span id="p-f1">Mempelai</span> & <span id="p-f2">Wanita</span></h2>
+                    <p class="text-xs opacity-40 italic">Terima Kasih</p>
+                </section>
+
+                <button class="music-btn" onclick="togglePlay()"><i data-lucide="music" id="mi" class="w-4"></i></button>
+            </div> -->
+        </div>
+    </main>
+
+    <script>
+        let gal = []; let mu = null; let isP = false;
+
+        function sync() {
+            const v = (id) => document.getElementById(id).value;
+            const t = (id, val) => document.getElementById(id).innerText = val || "...";
+            document.getElementById('pv-root').className = 'screen ' + v('f-theme');
+            const n1 = v('m1-n') || "Mempelai"; const n2 = v('m2-n') || "Wanita";
+            t('p-m1-n', n1); t('p-m2-n', n2); t('p-m1-f', n1); t('p-m2-f', n2); t('p-f1', n1); t('p-f2', n2);
+            t('p-m1-ay', v('m1-ay')); t('p-m1-ib', v('m1-ib')); t('p-m2-ay', v('m2-ay')); t('p-m2-ib', v('m2-ib'));
+            t('p-ak-t', v('ak-t')); t('p-ak-j', v('ak-jm') + ' - ' + v('ak-js') + ' WIB');
+            t('p-ak-l', v('ak-l')); t('p-ak-a', v('ak-a'));
+            t('p-re-t', v('re-t')); t('p-re-j', v('re-jm') + ' - ' + v('re-js') + ' WIB');
+            t('p-re-l', v('re-l')); t('p-re-a', v('re-a'));
+            t('p-hero-t', v('re-t') || "01 JANUARI 2025");
+            t('p-q', v('f-q')); t('p-story', v('f-s')); t('p-gf-a', v('gf-a'));
+            t('p-gf-r', v('gf-b') + ' ' + v('gf-r') + ' a/n ' + v('gf-n'));
+        }
+
+        // Fungsi Upload Foto Mempelai dengan Progress Bar
+        function upImgMempelai(event, id) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const progBar = document.getElementById(`m${id}-prog`);
+            const fillBar = document.getElementById(`m${id}-fill`);
+            const sidePreview = document.getElementById(`m${id}-side-preview`);
+            const sideContainer = document.getElementById(`m${id}-preview-container`);
+            const mainPreview = document.getElementById(`p-m${id}-img`);
+
+            progBar.style.display = 'block';
+            fillBar.style.width = '0%';
+
+            const reader = new FileReader();
+
+            reader.onprogress = (ev) => {
+                if (ev.lengthComputable) {
+                    const percent = (ev.loaded / ev.total) * 100;
+                    fillBar.style.width = percent + '%';
+                }
+            };
+
+            reader.onload = (ev) => {
+                const result = ev.target.result;
+                // Update Pratinjau di Sidebar
+                sidePreview.src = result;
+                sideContainer.classList.remove('hidden');
+                
+                // Update Pratinjau di Undangan (Mockup)
+                mainPreview.src = result;
+                
+                // Sembunyikan progress bar setelah selesai
+                setTimeout(() => {
+                    progBar.style.display = 'none';
+                }, 500);
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        // Fungsi Hapus Foto Mempelai
+        function removeMempelaiImg(id) {
+            // Reset Input File
+            document.getElementById(`f-m${id}`).value = "";
+            // Sembunyikan Preview di Sidebar
+            document.getElementById(`m${id}-preview-container`).classList.add('hidden');
+            // Reset Preview di Undangan ke Placeholder (Icon/Abu-abu)
+            document.getElementById(`p-m${id}-img`).src = ""; 
+        }
+
+        function upGa(e) {
+            const files = Array.from(e.target.files);
+            const pb = document.getElementById('ga-prog'); const fill = document.getElementById('ga-fill');
+            pb.style.display = 'block';
+            let loaded = 0;
+            files.forEach(f => {
+                const r = new FileReader();
+                r.onload = (ev) => {
+                    gal.push(ev.target.result); loaded++;
+                    fill.style.width = (loaded / files.length * 100) + '%';
+                    if(loaded === files.length) { 
+                        setTimeout(() => { pb.style.display='none'; renderGa(); }, 500); 
+                    }
+                };
+                r.readAsDataURL(f);
+            });
+        }
+
+        function renderGa() {
+            const list = document.getElementById('ga-list'); const grid = document.getElementById('p-ga-grid');
+            list.innerHTML = ''; grid.innerHTML = '';
+            document.getElementById('ga-count').innerText = gal.length + '/10';
+            gal.forEach((s, i) => {
+                list.innerHTML += `<div class="relative aspect-square"><img src="${s}" class="w-full h-full object-cover rounded"><button onclick="gal.splice(${i},1);renderGa()" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-[8px]">×</button></div>`;
+                grid.innerHTML += `<div class="aspect-square rounded-xl overflow-hidden shadow-sm border-2 border-white"><img src="${s}" class="w-full h-full object-cover"></div>`;
+            });
+        }
+
+        function upMu(e) {
+            const r = new FileReader();
+            document.getElementById('mu-prog').style.display = 'block';
+            r.onprogress = (ev) => document.getElementById('mu-fill').style.width = (ev.loaded/ev.total*100)+'%';
+            r.onload = (ev) => { mu = ev.target.result; document.getElementById('mu-prog').style.display='none'; alert("Musik Berhasil Dimuat"); };
+            r.readAsDataURL(e.target.files[0]);
+        }
+
+        function togglePlay() {
+            isP = !isP; document.getElementById('mi').setAttribute('data-lucide', isP ? 'pause' : 'music');
+            lucide.createIcons();
+            alert(isP ? "Musik dimainkan di hasil ekspor" : "Musik dimatikan");
+        }
+
+        function setMode(m) { document.getElementById('m-frame').className = 'mockup view-' + m; }
+
+        
+
+        function saveData() {
+            const d = { 
+                m: [document.getElementById('m1-n').value, document.getElementById('m1-ay').value, document.getElementById('m1-ib').value, document.getElementById('m2-n').value, document.getElementById('m2-ay').value, document.getElementById('m2-ib').value],
+                ak: [document.getElementById('ak-t').value, document.getElementById('ak-jm').value, document.getElementById('ak-js').value, document.getElementById('ak-l').value, document.getElementById('ak-a').value, document.getElementById('ak-m').value],
+                re: [document.getElementById('re-t').value, document.getElementById('re-jm').value, document.getElementById('re-js').value, document.getElementById('re-l').value, document.getElementById('re-a').value, document.getElementById('re-m').value],
+                gal: gal, mu: mu, theme: document.getElementById('f-theme').value,
+                q: document.getElementById('f-q').value, s: document.getElementById('f-s').value,
+                gf: [document.getElementById('gf-a').value, document.getElementById('gf-m').value, document.getElementById('gf-b').value, document.getElementById('gf-n').value, document.getElementById('gf-r').value]
+            };
+            const blob = new Blob([JSON.stringify(d)], {type:'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'data-undangan.json'; a.click();
+        }
+
+        function exportToJS() {
+            // 1. Ambil semua data dari form builder
+            const data = {
+                config: {
+                    theme: document.getElementById('f-theme').value,
+                    music: mu || "" // Variabel mu yang berisi base64 audio
+                },
+                mempelai1: {
+                    namaLengkap: document.getElementById('m1-n-lengkap').value,
+                    namaPanggilan: document.getElementById('m1-n').value,
+                    ayah: document.getElementById('m1-ay').value,
+                    ibu: document.getElementById('m1-ib').value,
+                    foto: document.getElementById('m1-thumb').src
+                },
+                mempelai2: {
+                    namaLengkap: document.getElementById('m2-n-lengkap').value,
+                    namaPanggilan: document.getElementById('m2-n').value,
+                    ayah: document.getElementById('m2-ay').value,
+                    ibu: document.getElementById('m2-ib').value,
+                    foto: document.getElementById('m2-thumb').src
+                },
+                acara: {
+                    tanggal: document.getElementById('ak-t').value,
+                    jam: "08:00 WIB - Selesai", // Bisa ditambah input jika perlu
+                    lokasi: document.getElementById('ak-l').value,
+                    alamat: document.getElementById('ak-l').value, // Fallback ke lokasi
+                    maps: "#" 
+                },
+                resepsi: {
+                    tanggal: document.getElementById('ak-t').value,
+                    jam: "11:00 WIB - 13:00 WIB",
+                    lokasi: document.getElementById('ak-l').value,
+                    alamat: document.getElementById('ak-l').value,
+                    maps: "#"
+                },
+                quotes: "Cinta bukan tentang mencari pasangan yang sempurna, tapi belajar melihat pasangan yang tidak sempurna dengan cara yang sempurna.",
+                story: "Kisah cinta kami dimulai dari sebuah pertemuan sederhana yang berujung pada janji suci.",
+                galeri: gal, // Array galeri yang berisi base64 images
+                gift: {
+                    alamat: "Alamat pengiriman hadiah...",
+                    linkMaps: "#",
+                    bank: document.getElementById('gf-b').value,
+                    noRek: document.getElementById('gf-r').value,
+                    namaRek: document.getElementById('m1-n').value
+                }
+            };
+
+            // 2. Bungkus JSON ke dalam string variabel JavaScript
+            // Kita gunakan format: const weddingData = { ... };
+            const content = "const weddingData = " + JSON.stringify(data, null, 4) + ";";
+
+            // 3. Proses Download sebagai file .js
+            const blob = new Blob([content], { type: 'text/javascript;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            
+            link.href = url;
+            link.download = 'data.js'; // Nama file harus tepat agar dibaca viewer
+            document.body.appendChild(link);
+            link.click();
+            
+            // Cleanup
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        }
+
+        function importData(e) {
+            const r = new FileReader();
+            r.onload = (ev) => {
+                const d = JSON.parse(ev.target.result);
+                document.getElementById('m1-n').value = d.m[0]; document.getElementById('m1-ay').value = d.m[1]; document.getElementById('m1-ib').value = d.m[2];
+                document.getElementById('m2-n').value = d.m[3]; document.getElementById('m2-ay').value = d.m[4]; document.getElementById('m2-ib').value = d.m[5];
+                document.getElementById('ak-t').value = d.ak[0]; document.getElementById('ak-jm').value = d.ak[1]; document.getElementById('ak-js').value = d.ak[2]; document.getElementById('ak-l').value = d.ak[3]; document.getElementById('ak-a').value = d.ak[4]; document.getElementById('ak-m').value = d.ak[5];
+                document.getElementById('re-t').value = d.re[0]; document.getElementById('re-jm').value = d.re[1]; document.getElementById('re-js').value = d.re[2]; document.getElementById('re-l').value = d.re[3]; document.getElementById('re-a').value = d.re[4]; document.getElementById('re-m').value = d.re[5];
+                document.getElementById('f-q').value = d.q; document.getElementById('f-s').value = d.s; document.getElementById('f-theme').value = d.theme;
+                document.getElementById('gf-a').value = d.gf[0]; document.getElementById('gf-m').value = d.gf[1]; document.getElementById('gf-b').value = d.gf[2]; document.getElementById('gf-n').value = d.gf[3]; document.getElementById('gf-r').value = d.gf[4];
+                gal = d.gal || []; mu = d.mu; renderGa(); sync();
+            };
+            r.readAsText(e.target.files[0]);
+        }
+
+        lucide.createIcons();
+        sync();
+    </script>
+</body>
+</html>
