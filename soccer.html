@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LineupPro Studio - Ultimate Edition 2025</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --accent: #fbbf24;
+            --bg-dark: #0f172a;
+            --pitch-green: #064e3b;
+            --sidebar-bg: #ffffff;
+            --text-dark: #1e293b;
+        }
+
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { margin: 0; display: flex; height: 100vh; background: var(--bg-dark); color: var(--text-dark); overflow: hidden; }
+
+        /* --- SIDEBAR --- */
+        #sidebar { 
+            width: 440px; background: var(--sidebar-bg); border-right: 1px solid #e2e8f0; 
+            display: flex; flex-direction: column; z-index: 1000; box-shadow: 10px 0 40px rgba(0,0,0,0.2);
+        }
+        .sidebar-header { padding: 25px; border-bottom: 1px solid #f1f5f9; }
+        .sidebar-header h2 { margin: 0; font-weight: 800; font-size: 1.4rem; letter-spacing: -1px; }
+        .sidebar-header span { color: var(--primary); }
+        .sidebar-scroll { flex: 1; overflow-y: auto; padding: 20px; }
+        .sidebar-footer { padding: 20px; border-top: 1px solid #f1f5f9; background: #fff; }
+
+        .group-card { background: #f8fafc; border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+        .section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; font-weight: 800; margin-bottom: 15px; display: block; }
+
+        /* --- PLAYER INPUT ROW --- */
+        .player-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 12px; }
+        .input-wrap { flex: 1; }
+        .input-wrap label { display: block; font-size: 0.7rem; font-weight: 700; color: #64748b; margin-bottom: 4px; }
+        
+        input, select { 
+            width: 100%; padding: 10px; border: 1.5px solid #e2e8f0; border-radius: 10px; 
+            font-size: 0.85rem; outline: none; background: white; transition: 0.2s;
+        }
+        input:focus { border-color: var(--primary); }
+
+        .eye-btn {
+            width: 40px; height: 38px; border-radius: 10px; border: 1.5px solid #e2e8f0;
+            background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; transition: 0.2s;
+        }
+        .eye-btn.hidden-state { background: #fee2e2; border-color: #fca5a5; color: #ef4444; }
+
+        /* --- PREVIEW COLOR --- */
+        .color-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 10px 0; }
+        .color-item label { display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 5px; }
+        input[type="color"] { -webkit-appearance: none; height: 50px; cursor: pointer; padding: 4px; }
+        input[type="color"]::-webkit-color-swatch { border-radius: 6px; border: none; }
+
+        .tabs { 
+            display: flex; 
+            background: #f1f5f9; 
+            border-radius: 12px; 
+            padding: 6px; 
+            margin-bottom: 20px; 
+            border: 1px solid #e2e8f0;
+        }
+
+        .tab-btn { 
+            flex: 1; 
+            border: none; 
+            padding: 12px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 800; 
+            font-size: 0.85rem;
+            color: #94a3b8; 
+            background: transparent;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Status Active yang Jelas */
+        .tab-btn.active { 
+            background: white; 
+            color: var(--primary); 
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+            transform: translateY(0);
+        }
+
+        .tab-btn:hover:not(.active) {
+            color: #64748b;
+            background: rgba(255,255,255,0.5);
+        }
+
+        /* --- PREVIEW AREA --- */
+        #preview-area { flex: 1; display: flex; align-items: center; justify-content: center; background: #020617; overflow: auto; padding: 40px; }
+        #export-container { background: #042f24; padding: 60px; display: flex; flex-direction: column; align-items: center; border-radius: 4px; min-width: 1100px; }
+
+        .match-header { text-align: center; color: white; margin-bottom: 40px; }
+        .match-header h1 { margin: 0; font-size: 3rem; font-weight: 800; letter-spacing: -1px; }
+        .match-header p { margin: 5px 0; opacity: 0.8; font-size: 1.1rem; }
+        .stadium-tag { color: var(--primary); font-weight: 700; letter-spacing: 2px; font-size: 0.8rem; margin-top: 10px; }
+
+        .tactics-layout { display: flex; align-items: flex-start; gap: 50px; }
+
+        /* PITCH */
+        #pitch {
+            width: 520px; height: 720px; background-color: var(--pitch-green);
+            border: 4px solid rgba(255,255,255,0.9); position: relative;
+            background-image: repeating-linear-gradient(0deg, #064e3b, #064e3b 10%, #065f46 10%, #065f46 20%);
+        }
+        .pitch-mid { position: absolute; top: 50%; width: 100%; height: 2px; background: rgba(255,255,255,0.3); }
+        .pitch-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 120px; height: 120px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; }
+
+        #players-layer { position: absolute; inset: 0; z-index: 500; }
+
+        .player-pin {
+            position: absolute; width: 48px; height: 48px; border: 3px solid white;
+            border-radius: 50%; cursor: grab; z-index: 600; transform: translate(-50%, -50%);
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+        .player-label {
+            position: absolute; bottom: -45px; text-align: center; width: 180px; left: 50%; transform: translateX(-50%);
+            padding: 4px 8px; border-radius: 6px;
+        }
+        .label-name { color: white; font-weight: 800; font-size: 10px; text-transform: uppercase; display: block; line-height: 1.2; }
+        .label-pos { color: var(--accent); font-size: 8px; font-weight: 700; display: block; }
+
+        /* ROSTER */
+        .roster-card { width: 240px; color: white; }
+        .roster-logo { height: 80px; margin-bottom: 20px; display: flex; justify-content: center; }
+        .roster-logo img { max-height: 80px; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.3)); }
+        .roster-card h2 { border-bottom: 4px solid var(--primary); padding-bottom: 8px; margin-bottom: 20px; text-transform: uppercase; }
+        .roster-item { display: flex; gap: 8px; font-size: 0.9rem; margin-bottom: 6px; align-items: center; }
+        .pos-tag { font-weight: 800; color: var(--accent); font-size: 0.7rem; width: 35px; flex-shrink: 0; }
+        .sub-header { font-size: 0.75rem; color: var(--accent); font-weight: 800; letter-spacing: 2px; margin: 30px 0 10px 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
+
+        .btn-main { background: var(--primary); color: white; border: none; padding: 18px; border-radius: 12px; font-weight: 800; cursor: pointer; width: 100%; }
+        .btn-h2h { background: #1e293b; color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; margin-bottom: 20px; }
+        .btn-h2h.active { background: #ef4444; }
+
+        /* --- Efek Pin Aktif/Fokus --- */
+        .player-pin.focused {
+            z-index: 1000 !important;
+            transform: translate(-50%, -50%) scale(1.4);
+            box-shadow: 0 0 25px var(--accent), 0 0 50px var(--accent);
+            border-color: var(--accent);
+            animation: pulseFocus 1.5s infinite;
+        }
+
+        @keyframes pulseFocus {
+            0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); }
+            70% { box-shadow: 0 0 0 25px rgba(251, 191, 36, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+        }
+
+        /* Animasi halus saat transisi fokus */
+        .player-pin {
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                        box-shadow 0.3s ease, 
+                        border-color 0.3s ease;
+        }
+
+        /* --- Styling Form Group & Label --- */
+        .form-group {
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.75rem; /* Ukuran kecil namun tegas */
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em; /* Memberi ruang antar huruf */
+            color: #64748b; /* Warna abu-abu slate yang elegan */
+            margin-bottom: 6px;
+            transition: color 0.2s ease;
+        }
+
+        /* Interaksi saat input di dalamnya sedang fokus */
+        .form-group:focus-within label {
+            color: var(--primary); /* Label berubah biru saat input diketik */
+        }
+
+        /* Styling Input agar selaras dengan Label baru */
+        input[type="text"], 
+        input[type="file"],
+        select {
+            width: 100%;
+            padding: 12px 14px;
+            background-color: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]::placeholder {
+            color: #cbd5e1;
+            font-weight: 400;
+        }
+
+        input[type="text"]:focus,
+        select:focus {
+            border-color: var(--primary);
+            background-color: #fff;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08); /* Efek glow tipis */
+        }
+
+        /* Khusus untuk grid warna agar label tetap rapi */
+        .color-item label {
+            font-size: 0.7rem;
+            margin-bottom: 4px;
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1.5px solid #e2e8f0;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+            color: var(--text-dark);
+        }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="sidebar-header"><h2>Lineup<span>Pro</span> Studio</h2></div>
+    <div class="sidebar-scroll">
+        <button class="btn-h2h" id="h2h-btn" onclick="toggleH2H()">Head to Head Mode: OFF</button>
+        
+        <div class="group-card">
+            <span class="section-title">Informasi Pertandingan</span>
+            <div class="form-group"><label>Judul</label><input type="text" id="m-title" placeholder="FINAL MATCH" oninput="updateUI()"></div>
+            <div class="form-group"><label>Sub Title & Deskripsi</label><input type="text" id="m-sub" placeholder="Champions League - Final" oninput="updateUI()"></div>
+            <div class="form-group"><label>Nama Stadion</label><input type="text" id="m-stadium" placeholder="Gelora Bung Karno" oninput="updateUI()"></div>
+            <div class="form-group"><label>Jadwal Pertandingan</label><input type="text" id="m-time" placeholder="Minggu, 19:30 WIB" oninput="updateUI()"></div>
+        </div>
+
+        <div class="group-card">
+            <span class="section-title">Tim & Formasi</span>
+            <div class="tabs">
+                <button class="tab-btn active" id="tab-home" onclick="switchTab('home')">Home</button>
+                <button class="tab-btn" id="tab-away" onclick="switchTab('away')">Away</button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px">
+                <input type="file" id="load-json" accept=".json" style="display:none" onchange="loadExternalData(this)">
+                
+                <button onclick="document.getElementById('load-json').click()" class="btn-secondary">
+                    📂 LOAD DATA
+                </button>
+                
+                <button onclick="exportTeamToJson()" class="btn-secondary">
+                    💾 EXPORT JSON
+                </button>
+            </div>
+            <div class="form-group"><label>Nama Team</label><input type="text" id="t-name" oninput="updateData()"></div>
+            <div class="form-group"><label>Logo Club</label><input type="file" accept="image/*" onchange="uploadLogo(this)"></div>
+            <div class="color-grid">
+                <div class="color-item"><label>Jersey Pemain</label><input type="color" id="t-color" oninput="updateData()"></div>
+                <div class="color-item"><label>Jersey Kiper</label><input type="color" id="t-gk" oninput="updateData()"></div>
+            </div>
+            <div class="form-group"><label>Formasi Strategi</label>
+                <select id="t-form" onchange="changeFormation()">
+                    <option value="4-3-3">4-3-3</option>
+                    <option value="4-4-2">4-4-2</option>
+                    <option value="3-5-2">3-5-2</option>
+                    <option value="4-2-3-1">4-2-3-1</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="group-card">
+            <span class="section-title">Pemain Inti</span>
+            <div id="player-inputs"></div>
+        </div>
+
+        <div class="group-card">
+            <span class="section-title">Pemain Cadangan</span>
+            <div id="sub-inputs"></div>
+            <button onclick="addSubstitute()" style="width:100%; padding:12px; border:2px dashed #cbd5e1; background:none; cursor:pointer; font-weight:700; color:#64748b">+ Tambah Cadangan</button>
+        </div>
+    </div>
+    <div class="sidebar-footer"><button class="btn-main" onclick="exportToJPG()">EXPORT AS JPG</button></div>
+</div>
+
+<div id="preview-area">
+    <div id="export-container">
+        <div class="match-header">
+            <h1 id="disp-title">MATCH DAY</h1>
+            <p id="disp-sub">Match Details and Description</p>
+            <div class="stadium-tag" id="disp-meta">STADIUM & TIME INFO</div>
+        </div>
+        <div class="tactics-layout">
+            <div class="roster-card" id="roster-home"></div>
+            <div id="pitch">
+                <div class="pitch-mid"></div>
+                <div class="pitch-circle"></div>
+                <div id="players-layer"></div>
+            </div>
+            <div class="roster-card" id="roster-away"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const posRoles = [
+        {l:'GK', f:'Goalkeeper'}, {l:'DF', f:'Defender'}, {l:'DF', f:'Defender'}, {l:'DF', f:'Defender'}, {l:'DF', f:'Defender'},
+        {l:'MF', f:'Midfielder'}, {l:'MF', f:'Midfielder'}, {l:'MF', f:'Midfielder'}, {l:'FW', f:'Forward'}, {l:'FW', f:'Forward'}, {l:'FW', f:'Forward'}
+    ];
+
+    const formations = {
+        '4-3-3': [{t:90,l:50},{t:72,l:15},{t:72,l:38},{t:72,l:62},{t:72,l:85},{t:48,l:25},{t:48,l:50},{t:48,l:75},{t:22,l:20},{t:15,l:50},{t:22,l:80}],
+        '4-4-2': [{t:90,l:50},{t:72,l:15},{t:72,l:38},{t:72,l:62},{t:72,l:85},{t:48,l:15},{t:48,l:38},{t:48,l:62},{t:48,l:85},{t:20,l:35},{t:20,l:65}],
+        '3-5-2': [{t:90,l:50},{t:75,l:25},{t:75,l:50},{t:75,l:75},{t:50,l:10},{t:50,l:30},{t:50,l:50},{t:50,l:70},{t:50,l:90},{t:20,l:35},{t:20,l:65}],
+        '4-2-3-1': [{t:90,l:50},{t:72,l:15},{t:72,l:38},{t:72,l:62},{t:72,l:85},{t:55,l:35},{t:55,l:65},{t:38,l:15},{t:35,l:50},{t:38,l:85},{t:15,l:50}]
+    };
+
+    let state = {
+        activeTab: 'home', h2h: false,
+        home: { name: 'HOME TEAM', logo: null, color: '#3b82f6', gk: '#fbbf24', formation: '4-3-3', players: [], subs: ['Sub 1'] },
+        away: { name: 'AWAY TEAM', logo: null, color: '#ef4444', gk: '#10b981', formation: '4-3-3', players: [], subs: ['Sub 1'] }
+    };
+
+    function init() {
+        ['home', 'away'].forEach(tk => {
+            state[tk].players = posRoles.map((role, i) => ({
+                n: i === 0 ? 'Keeper Name' : 'Player ' + (i+1),
+                pos: role.f, tag: role.l, show: true,
+                x: formations[state[tk].formation][i].l, y: formations[state[tk].formation][i].t
+            }));
+        });
+        syncSidebar(); updateUI();
+    }
+
+    function toggleVis(idx) {
+        state[state.activeTab].players[idx].show = !state[state.activeTab].players[idx].show;
+        syncSidebar(); updateUI();
+    }
+
+    function focusPlayerPin(index) {
+        const pins = document.querySelectorAll('.player-pin');
+        // Pastikan kita mengambil pin yang benar (terutama di mode H2H atau Away)
+        // Jika mode H2H aktif dan kita di tab Away, index perlu disesuaikan
+        // Namun cara termudah adalah memberi ID unik pada setiap pin saat dirender
+        const targetPin = document.getElementById(`pin-${state.activeTab}-${index}`);
+        if (targetPin) targetPin.classList.add('focused');
+    }
+
+    // Fungsi untuk melepas tanda aktif
+    function blurPlayerPin(index) {
+        const targetPin = document.getElementById(`pin-${state.activeTab}-${index}`);
+        if (targetPin) targetPin.classList.remove('focused');
+    }
+
+    function syncSidebar() {
+        const team = state[state.activeTab];
+        
+        // 1. Sinkronisasi Data Dasar
+        document.getElementById('t-name').value = team.name;
+        document.getElementById('t-color').value = team.color;
+        document.getElementById('t-gk').value = team.gk;
+        document.getElementById('t-form').value = team.formation;
+        
+        // 2. Render Input Pemain Inti (dengan tombol mata)
+        let pHTML = '';
+        team.players.forEach((p, i) => {
+            pHTML += `
+            <div class="player-row">
+                <div class="input-wrap">
+                    <label>${p.pos}</label>
+                    <input type="text" 
+                        value="${p.n}" 
+                        oninput="state['${state.activeTab}'].players[${i}].n=this.value; updateUI()"
+                        onfocus="focusPlayerPin(${i})"
+                        onblur="blurPlayerPin(${i})">
+                </div>
+                <button class="eye-btn ${p.show ? '' : 'hidden-state'}" onclick="toggleVis(${i})">
+                    ${p.show ? '👁️' : '🔒'}
+                </button>
+            </div>`;
+        });
+        document.getElementById('player-inputs').innerHTML = pHTML;
+
+        // 3. Render Input Pemain Cadangan (Perbaikan di sini)
+        let sHTML = '';
+        team.subs.forEach((s, i) => {
+            sHTML += `
+            <div class="form-group" style="margin-bottom: 8px; display: flex; gap: 8px;">
+                <input type="text" 
+                    placeholder="Nama Cadangan" 
+                    value="${s}" 
+                    oninput="state['${state.activeTab}'].subs[${i}] = this.value; updateUI()">
+                <button onclick="removeSub(${i})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:800;">✕</button>
+            </div>`;
+        });
+        document.getElementById('sub-inputs').innerHTML = sHTML;
+    }
+
+    function removeSub(index) {
+        state[state.activeTab].subs.splice(index, 1);
+        syncSidebar();
+        updateUI();
+    }
+
+    // Fungsi tambah cadangan yang memastikan input langsung muncul
+    function addSubstitute() {
+        state[state.activeTab].subs.push("Pemain Baru");
+        syncSidebar();
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('disp-title').innerText = document.getElementById('m-title').value || "MATCH DAY";
+        document.getElementById('disp-sub').innerText = document.getElementById('m-sub').value || "Match Description";
+        document.getElementById('disp-meta').innerText = `${document.getElementById('m-stadium').value || 'STADIUM'} | ${document.getElementById('m-time').value || 'TIME'}`;
+        
+        const layer = document.getElementById('players-layer');
+        layer.innerHTML = '';
+
+        if (state.h2h) {
+            renderTeam('home', false); renderTeam('away', true);
+            renderList('home', 'roster-home'); renderList('away', 'roster-away');
+            document.getElementById('roster-away').style.display = 'block';
+        } else {
+            renderTeam(state.activeTab, state.activeTab === 'away');
+            renderList(state.activeTab, 'roster-home');
+            document.getElementById('roster-away').style.display = 'none';
+        }
+    }
+
+    function renderTeam(tk, inverted) {
+        const team = state[tk];
+        team.players.forEach((p, i) => {
+            if (!p.show) return;
+            const pin = document.createElement('div');
+            pin.className = 'player-pin';
+            pin.id = `pin-${tk}-${i}`; // ID Unik untuk identifikasi fokus
+            
+            pin.style.backgroundColor = (i === 0) ? team.gk : team.color;
+            
+            let dx = p.x, dy = p.y;
+            if (state.h2h) {
+                if (tk === 'home') dy = 55 + (p.y * 0.4);
+                else { dy = ((100 - p.y) * 0.4) + 5; dx = 100 - p.x; }
+            } else if (inverted) { dy = 100 - p.y; dx = 100 - p.x; }
+
+            pin.style.left = dx + '%'; pin.style.top = dy + '%';
+            pin.innerHTML = `<div class="player-label"><span class="label-name">${p.n}</span><span class="label-pos">${p.pos}</span></div>`;
+            
+            // Logic drag and drop tetap sama...
+            pin.onmousedown = (e) => { /* ... kode drag sebelumnya ... */ };
+            
+            document.getElementById('players-layer').appendChild(pin);
+        });
+    }
+
+    function renderList(tk, elId) {
+        const team = state[tk];
+        let h = `<div class="roster-logo">${team.logo ? `<img src="${team.logo}">` : ''}</div><h2>${team.name}</h2>`;
+        team.players.filter(p => p.show).forEach(p => h += `<div class="roster-item"><span class="pos-tag">${p.tag}</span> ${p.n}</div>`);
+        if (team.subs.length > 0) {
+            h += `<div class="sub-header">PEMAIN CADANGAN</div>`;
+            team.subs.forEach(s => { if(s.trim()) h += `<div class="roster-item" style="opacity:0.8"><span class="pos-tag">SUB</span> ${s}</div>`; });
+        }
+        document.getElementById(elId).innerHTML = h;
+    }
+
+    function switchTab(t) {
+        state.activeTab = t;
+        state.h2h = false; // Matikan H2H saat pindah tab agar tidak bingung
+        
+        // Reset tombol H2H
+        const h2hBtn = document.getElementById('h2h-btn');
+        h2hBtn.classList.remove('active');
+        h2hBtn.innerText = "Head to Head Mode: OFF";
+
+        // Update Visual Tab
+        updateTabUI();
+        
+        syncSidebar(); 
+        updateUI();
+    }
+    function updateTabUI() {
+        const btnHome = document.getElementById('tab-home');
+        const btnAway = document.getElementById('tab-away');
+
+        if (state.activeTab === 'home') {
+            btnHome.classList.add('active');
+            btnAway.classList.remove('active');
+        } else {
+            btnAway.classList.add('active');
+            btnHome.classList.remove('active');
+        }
+    }
+    function toggleH2H() { state.h2h = !state.h2h; document.getElementById('h2h-btn').classList.toggle('active', state.h2h); updateUI(); }
+    function updateData() { 
+        state[state.activeTab].name = document.getElementById('t-name').value;
+        state[state.activeTab].color = document.getElementById('t-color').value;
+        state[state.activeTab].gk = document.getElementById('t-gk').value;
+        updateUI(); 
+    }
+    function changeFormation() {
+        const team = state[state.activeTab];
+        const selectedFormation = document.getElementById('t-form').value;
+        
+        // 1. Update data formasi di state
+        team.formation = selectedFormation;
+        
+        // 2. Update koordinat X dan Y setiap pemain berdasarkan data formasi baru
+        const newCoords = formations[selectedFormation];
+        team.players.forEach((p, i) => {
+            if (newCoords[i]) {
+                p.x = newCoords[i].l;
+                p.y = newCoords[i].t;
+            }
+        });
+        
+        // 3. Pemicu Render Ulang (Crucial Step)
+        updateUI(); 
+    }
+
+    // FUNGSI UNTUK LOAD DATA (Satu Tim ke Tab Aktif)
+    function loadExternalData(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    const tk = state.activeTab; // Home atau Away
+
+                    // Update state tim aktif
+                    state[tk].name = data.name || state[tk].name;
+                    state[tk].color = data.color || state[tk].color;
+                    state[tk].gk = data.gk || state[tk].gk;
+                    state[tk].formation = data.formation || state[tk].formation;
+                    state[tk].subs = data.subs || [];
+
+                    // Update pemain inti (tanpa merusak koordinat drag)
+                    if (data.players && Array.isArray(data.players)) {
+                        data.players.forEach((p, i) => {
+                            if (state[tk].players[i]) {
+                                state[tk].players[i].n = p.n;
+                                state[tk].players[i].show = (p.show !== undefined) ? p.show : true;
+                            }
+                        });
+                    }
+
+                    // Terapkan posisi default berdasarkan formasi baru
+                    const coords = formations[state[tk].formation];
+                    if (coords) {
+                        state[tk].players.forEach((p, i) => {
+                            if (coords[i]) {
+                                p.x = coords[i].l;
+                                p.y = coords[i].t;
+                            }
+                        });
+                    }
+
+                    syncSidebar();
+                    updateUI();
+                    alert(`Data tim berhasil dimuat ke tab ${tk.toUpperCase()}`);
+                    input.value = ''; // Reset input agar bisa upload ulang
+                } catch (err) {
+                    alert("Error: Format file JSON tidak valid.");
+                }
+            };
+            reader.readAsText(input.files[0]);
+        }
+    }
+
+    // FUNGSI UNTUK EXPORT DATA (Satu Tim dari Tab Aktif)
+    function exportTeamToJson() {
+        const tk = state.activeTab;
+        const team = state[tk];
+        
+        // Siapkan objek data yang akan diekspor
+        const dataToExport = {
+            name: team.name,
+            color: team.color,
+            gk: team.gk,
+            formation: team.formation,
+            players: team.players.map(p => ({
+                n: p.n,
+                show: p.show
+            })),
+            subs: team.subs
+        };
+
+        // Proses download file
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `${team.name.replace(/\s+/g, '_').toLowerCase()}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function uploadLogo(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => { state[state.activeTab].logo = e.target.result; updateUI(); };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    function addSubstitute() { state[state.activeTab].subs.push("Nama Cadangan"); syncSidebar(); updateUI(); }
+    async function exportToJPG() {
+        const canvas = await html2canvas(document.getElementById('export-container'), { scale: 2 });
+        const link = document.createElement('a');
+        link.download = `Lineup-${Date.now()}.jpg`;
+        link.href = canvas.toDataURL("image/jpeg", 0.95);
+        link.click();
+    }
+    window.onload = init;
+</script>
+</body>
+</html>

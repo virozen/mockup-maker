@@ -1,0 +1,20 @@
+{
+  "name": "TIM NASIONAL INDONESIA",
+  "color": "#ef4444",
+  "gk": "#22c55e",
+  "formation": "3-5-2",
+  "players": [
+    { "n": "Maarten Paes", "show": true },
+    { "n": "Rizky Ridho", "show": true },
+    { "n": "Jay Idzes", "show": true },
+    { "n": "Justin Hubner", "show": true },
+    { "n": "Sandy Walsh", "show": true },
+    { "n": "Ivar Jenner", "show": true },
+    { "n": "Thom Haye", "show": true },
+    { "n": "Nathan Tjoe-A-On", "show": true },
+    { "n": "Calvin Verdonk", "show": true },
+    { "n": "Ragnar Oratmangoen", "show": true },
+    { "n": "Rafael Struick", "show": true }
+  ],
+  "subs": ["Marselino Ferdinan", "Witan Sulaeman", "Pratama Arhan", "Hokky Caraka"]
+}

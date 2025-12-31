@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonic Engine Elite 3.1 - Master Visualizer</title>
+    <style>
+        :root { --accent: #00f2fe; --glass: rgba(8, 8, 8, 0.88); --border: rgba(255, 255, 255, 0.12); }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #000; color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; }
+        
+        #canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+
+        /* Lyric System Upgrade */
+        #lyricContainer {
+            position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 50; width: 85%; text-align: center; pointer-events: none;
+            transition: opacity 0.5s ease, visibility 0.5s;
+        }
+        #lyricContainer.hide-lyrics { opacity: 0; visibility: hidden; }
+        
+        .lyric-line {
+            font-size: 2.8rem; font-weight: 850; color: rgba(255,255,255,0.2);
+            margin: 0; transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+            letter-spacing: -1px; line-height: 1.2;
+        }
+        .lyric-line.active { color: #fff; transform: scale(1.05); opacity: 1; text-shadow: 0 0 40px var(--accent); }
+
+        /* UI Containers */
+        .ui-root { 
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); 
+            z-index: 100; width: 95%; max-width: 1150px; 
+            display: flex; flex-direction: column; gap: 15px; transition: all 0.6s ease;
+        }
+        .ui-root.hidden { bottom: -550px; opacity: 0; }
+
+        .glass-panel { 
+            background: var(--glass); backdrop-filter: blur(30px); border: 1px solid var(--border); 
+            border-radius: 22px; padding: 18px 28px; display: flex; align-items: center; gap: 20px; 
+            box-shadow: 0 25px 60px rgba(0,0,0,0.9); 
+        }
+
+        .side-controls { position: absolute; top: 25px; right: 25px; z-index: 101; display: flex; flex-direction: column; gap: 12px; }
+        .float-btn { 
+            background: var(--glass); border: 1px solid var(--border); color: #fff; 
+            width: 52px; height: 52px; border-radius: 16px; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 22px; transition: 0.3s; 
+        }
+        .float-btn:hover { background: var(--accent); color: #000; transform: translateY(-3px); }
+
+        /* Playlist Modal */
+        .playlist-overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 480px; max-height: 550px; background: rgba(5,5,5,0.98); backdrop-filter: blur(50px);
+            border: 1px solid var(--border); border-radius: 28px; z-index: 102;
+            padding: 35px; display: none; flex-direction: column;
+        }
+        .playlist-overlay.active { display: flex; }
+        .song-list { overflow-y: auto; margin-top: 20px; max-height: 400px; padding-right: 8px; }
+        .song-item { 
+            padding: 14px; margin-bottom: 8px; border-radius: 12px; cursor: pointer; 
+            font-size: 13.5px; background: rgba(255,255,255,0.04); transition: 0.3s; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .song-item.active { background: var(--accent); color: #000; font-weight: 700; }
+
+        .group { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 10px; text-transform: uppercase; color: var(--accent); letter-spacing: 2px; font-weight: 800; opacity: 0.9; }
+        select, button, input[type="file"] { background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: #fff; padding: 10px 14px; border-radius: 12px; font-size: 12px; cursor: pointer; }
+        
+        /* Specialized Toggle Style */
+        .toggle-btn { min-width: 100px; transition: all 0.3s; border: 1px solid var(--accent); }
+        .toggle-btn.off { border-color: #ff4b2b; color: #ff4b2b; }
+
+        #audioPlayer { flex-grow: 1; height: 35px; filter: invert(1) hue-rotate(180deg) brightness(1.6); }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+
+    <div id="lyricContainer"><div id="lyricBox"></div></div>
+
+    <div class="side-controls">
+        <button class="float-btn" onclick="togglePlaylist()" title="Playlist">🎵</button>
+        <button class="float-btn" onclick="toggleUI()" title="Settings">⚙️</button>
+    </div>
+
+    <div class="playlist-overlay" id="playlistOverlay">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+            <h2 style="margin:0; font-size: 20px; letter-spacing: 2px;">ARCHIVE</h2>
+            <button onclick="togglePlaylist()" style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer;">✕</button>
+        </div>
+        <div class="song-list" id="songList"></div>
+    </div>
+
+    <div class="ui-root" id="uiRoot">
+        <div class="glass-panel">
+            <div class="group">
+                <label>Media Source</label>
+                <input type="file" id="audioInput" accept="audio/*,.lrc" multiple>
+            </div>
+            
+            <div class="group" style="flex-grow: 1;">
+                <label>Visual Engine Suite</label>
+                <div style="display:flex; gap: 10px;">
+                    <select id="vizType" style="flex-grow: 1;">
+                        <option value="nebula">Cosmic Nebula (Cinematic)</option>
+                        <option value="tunnel3d">Infinite 3D Tunnel</option>
+                        <option value="neural">Neural Network Flow</option>
+                        <option value="sacred">Sacred Geometry Mandala</option>
+                        <option value="particleSystem">Reactive Particle Burst</option>
+                        <option value="glitchMode">Digital Glitch System</option>
+                        <option value="isometric">Isometric Voxel Grid</option>
+                        <option value="plasma">Electric Plasma Storm</option>
+                        <option value="spectrum">Pro Spectrum Bars</option>
+                        <option value="rings">Frequency Rings</option>
+                        <option value="flowField">Liquid Flow Field</option>
+                        <option value="kaleidoscope">Kaleidoscope Mirror</option>
+                        <option value="waveform">Waveform Ribbon</option>
+                        <option value="cyberDashboard">Cyber Grid Dashboard</option>
+                    </select>
+                    <button id="autoVizBtn" onclick="toggleAutoViz()">AUTO: OFF</button>
+                    <button id="lyricToggleBtn" class="toggle-btn" onclick="toggleLyrics()">LYRIC: ON</button>
+                </div>
+            </div>
+
+            <div class="group">
+                <label>Playback Mode</label>
+                <select id="loopMode">
+                    <option value="loop-all">Loop All</option>
+                    <option value="shuffle">Shuffle</option>
+                    <option value="repeat-one">Repeat One</option>
+                </select>
+            </div>
+        </div>
+        <div class="glass-panel">
+            <audio id="audioPlayer" controls></audio>
+        </div>
+    </div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const audioInput = document.getElementById('audioInput');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const vizType = document.getElementById('vizType');
+    const songListDiv = document.getElementById('songList');
+    const lyricBox = document.getElementById('lyricBox');
+    const lyricContainer = document.getElementById('lyricContainer');
+    const lyricToggleBtn = document.getElementById('lyricToggleBtn');
+
+    let audioCtx, analyser, dataArray, bufferLength;
+    let playlist = [], currentSongIndex = 0;
+    let currentLyrics = []; 
+    let time = 0, autoVizInterval = null;
+    let particles = [];
+    let isLyricsVisible = true;
+
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.onresize = resize;
+    resize();
+
+    function toggleUI() { document.getElementById('uiRoot').classList.toggle('hidden'); }
+    function togglePlaylist() { document.getElementById('playlistOverlay').classList.toggle('active'); }
+
+    // Lyric Toggle Feature
+    function toggleLyrics() {
+        isLyricsVisible = !isLyricsVisible;
+        if (isLyricsVisible) {
+            lyricContainer.classList.remove('hide-lyrics');
+            lyricToggleBtn.innerText = "LYRIC: ON";
+            lyricToggleBtn.classList.remove('off');
+        } else {
+            lyricContainer.classList.add('hide-lyrics');
+            lyricToggleBtn.innerText = "LYRIC: OFF";
+            lyricToggleBtn.classList.add('off');
+        }
+    }
+
+    function parseLRC(lrcText) {
+        const lines = lrcText.split('\n');
+        const result = [];
+        const timeReg = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
+        lines.forEach(line => {
+            const match = timeReg.exec(line);
+            if (match) {
+                const time = parseInt(match[1]) * 60 + parseInt(match[2]) + (parseInt(match[3]) > 99 ? parseInt(match[3])/1000 : parseInt(match[3])/100);
+                const text = line.replace(timeReg, '').trim();
+                if(text) result.push({ time, text });
+            }
+        });
+        return result.sort((a, b) => a.time - b.time);
+    }
+
+    audioInput.onchange = async (e) => {
+        const files = Array.from(e.target.files);
+        const lrcFiles = files.filter(f => f.name.toLowerCase().endsWith('.lrc'));
+        const audioFiles = files.filter(f => !f.name.toLowerCase().endsWith('.lrc'));
+
+        for (const file of audioFiles) {
+            let lrcData = null;
+            const baseName = file.name.substring(0, file.name.lastIndexOf('.'));
+            const matchingLrc = lrcFiles.find(l => l.name.toLowerCase().startsWith(baseName.toLowerCase()));
+            if (matchingLrc) lrcData = parseLRC(await matchingLrc.text());
+            playlist.push({ name: file.name, url: URL.createObjectURL(file), lyrics: lrcData });
+        }
+        updatePlaylistUI();
+        if (audioPlayer.paused && playlist.length > 0) playSong(playlist.length - audioFiles.length);
+    };
+
+    function playSong(index) {
+        if (index < 0 || index >= playlist.length) return;
+        currentSongIndex = index;
+        currentLyrics = playlist[index].lyrics;
+        lyricBox.dataset.currentIndex = -1;
+        audioPlayer.src = playlist[index].url;
+        audioPlayer.play();
+        updatePlaylistUI();
+        if (!audioCtx) initAudio();
+    }
+
+    function updatePlaylistUI() {
+        songListDiv.innerHTML = playlist.length ? '' : '<p style="text-align:center; opacity:0.5;">No items found.</p>';
+        playlist.forEach((song, index) => {
+            const div = document.createElement('div');
+            div.className = `song-item ${index === currentSongIndex ? 'active' : ''}`;
+            div.innerHTML = `<span>${song.name}</span> <small>${song.lyrics ? 'SYNC' : 'NO LRC'}</small>`;
+            div.onclick = () => playSong(index);
+            songListDiv.appendChild(div);
+        });
+    }
+
+    function initAudio() {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        const source = audioCtx.createMediaElementSource(audioPlayer);
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        analyser.fftSize = 512;
+        bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+        for(let i=0; i<300; i++) particles.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, vx: Math.random()*2-1, vy: Math.random()*2-1, size: Math.random()*2+1 });
+        animate();
+    }
+
+    function getColor(i, alpha = 1, shift = 0) {
+        return `hsla(${(i / bufferLength * 120 + 200 + shift) % 360}, 100%, 55%, ${alpha})`;
+    }
+
+    // --- ENGINES (RETAINED FROM PREVIOUS) ---
+    const Engines = {
+        nebula: (vol) => {
+            ctx.globalCompositeOperation = 'screen';
+            for(let i=0; i<bufferLength; i+=4) {
+                const f = dataArray[i]/255;
+                const x = canvas.width/2 + Math.cos(i + time) * (f * canvas.height/3.5);
+                const y = canvas.height/2 + Math.sin(i + time) * (f * canvas.height/3.5);
+                const g = ctx.createRadialGradient(x, y, 0, x, y, f*160);
+                g.addColorStop(0, getColor(i, 0.6)); g.addColorStop(1, 'transparent');
+                ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, f*160, 0, Math.PI*2); ctx.fill();
+            }
+        },
+        tunnel3d: (vol) => {
+            ctx.save(); ctx.translate(canvas.width/2, canvas.height/2);
+            for(let i=0; i<bufferLength; i+=6) {
+                const s = i + (dataArray[i] * 2.8); ctx.rotate(time * 0.001);
+                ctx.strokeStyle = getColor(i, 0.5); ctx.lineWidth = 2;
+                ctx.strokeRect(-s/2, -s/2, s, s);
+                ctx.strokeStyle = getColor(i, 0.15, 40); ctx.strokeRect(-s/1.9, -s/1.9, s*1.05, s*1.05);
+            }
+            ctx.restore();
+        },
+        neural: (vol) => {
+            ctx.lineWidth = 1;
+            for(let i=0; i<bufferLength; i+=12) {
+                const f = dataArray[i]/255; ctx.strokeStyle = getColor(i, 0.4);
+                ctx.beginPath(); ctx.moveTo(0, i * (canvas.height/bufferLength));
+                ctx.bezierCurveTo(canvas.width/2, canvas.height*f, canvas.width/2, 0, canvas.width, (bufferLength-i)*(canvas.height/bufferLength));
+                ctx.stroke();
+            }
+        },
+        sacred: (vol) => {
+            ctx.save(); ctx.translate(canvas.width/2, canvas.height/2);
+            for(let i=0; i<12; i++) {
+                ctx.rotate(Math.PI/6); ctx.strokeStyle = getColor(vol*2.5, 0.5); ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.ellipse(vol, 0, vol*2.5, vol*0.7, time, 0, Math.PI*2); ctx.stroke();
+            }
+            ctx.restore();
+        },
+        particleSystem: (vol) => {
+            particles.forEach((p, i) => {
+                const f = dataArray[i%bufferLength]/255;
+                p.x += p.vx * (1 + f * 18); p.y += p.vy * (1 + f * 18);
+                if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
+                ctx.fillStyle = getColor(i, f + 0.3);
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size + f * 14, 0, Math.PI * 2); ctx.fill();
+            });
+        },
+        isometric: (vol) => {
+            const s = 45;
+            for(let x=0; x<canvas.width; x+=s) {
+                for(let y=0; y<canvas.height; y+=s) {
+                    const v = dataArray[(x+y)%bufferLength]/255;
+                    ctx.strokeStyle = getColor(v*bufferLength, 0.4);
+                    ctx.strokeRect(x, y - (v*70), s, s);
+                }
+            }
+        },
+        spectrum: (vol) => {
+            const bars = bufferLength / 1.5; // Mengurangi jumlah bar agar tidak terlalu rapat
+            const barWidth = (canvas.width / bars);
+            const centerX = canvas.width / 2;
+
+            for (let i = 0; i < bars; i++) {
+                // Mengambil data frekuensi (dataArray)
+                const f = dataArray[i] / 255;
+                const h = f * (canvas.height * 0.7); // Tinggi bar maksimal 70% layar
+                
+                // Gradasi warna dinamis
+                ctx.fillStyle = getColor(i, 1);
+
+                // Gambar ke arah KANAN
+                ctx.fillRect(centerX + (i * barWidth), canvas.height - h, barWidth - 2, h);
+                
+                // Gambar ke arah KIRI (Mirror)
+                ctx.fillRect(centerX - (i * barWidth) - barWidth, canvas.height - h, barWidth - 2, h);
+
+                // Efek "Glow Cap" di atas setiap bar (opsional)
+                ctx.fillStyle = getColor(i, 0.4, 50);
+                ctx.fillRect(centerX + (i * barWidth), canvas.height - h - 10, barWidth - 2, 4);
+                ctx.fillRect(centerX - (i * barWidth) - barWidth, canvas.height - h - 10, barWidth - 2, 4);
+            }
+        },
+        plasma: (vol) => {
+            let g = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, canvas.width/1.2);
+            g.addColorStop(0, getColor(vol, 0.6)); g.addColorStop(1, 'black');
+            ctx.fillStyle = g; ctx.fillRect(0,0,canvas.width,canvas.height);
+            Engines.particleSystem(vol);
+        },
+        glitchMode: (vol) => {
+            Engines.spectrum(vol);
+            if(vol > 115) { ctx.globalCompositeOperation = 'difference'; ctx.drawImage(canvas, Math.random()*40-20, Math.random()*40-20); }
+        },
+        rings: (vol) => {
+            ctx.save(); ctx.translate(canvas.width/2, canvas.height/2);
+            for(let i=0; i<bufferLength; i+=10) {
+                ctx.beginPath(); ctx.arc(0, 0, dataArray[i]*2, 0, Math.PI*2);
+                ctx.strokeStyle = getColor(i, 0.7); ctx.lineWidth = 3; ctx.stroke();
+            }
+            ctx.restore();
+        },
+        flowField: (vol) => {
+            particles.forEach((p, i) => {
+                const f = dataArray[i%bufferLength]/255;
+                p.x += Math.cos(p.y * 0.01 + time) * 3; p.y -= (1 + f * 9);
+                if(p.y < 0) p.y = canvas.height;
+                ctx.fillStyle = getColor(i, 0.6); ctx.fillRect(p.x, p.y, 2 + f*10, 2 + f*10);
+            });
+        },
+        kaleidoscope: (vol) => {
+            ctx.save(); ctx.translate(canvas.width/2, canvas.height/2);
+            for(let i=0; i<8; i++) { ctx.rotate(Math.PI/4); Engines.spectrum(vol); }
+            ctx.restore();
+        },
+        // WAVEFORM RIBBON - SIMETRIS TENGAH
+        waveform: (vol) => {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const step = (canvas.width / 2) / bufferLength;
+            
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = getColor(100, 1);
+            ctx.beginPath();
+            
+            for(let i = 0; i < bufferLength; i++) {
+                const f = (dataArray[i] / 128.0) - 1.0;
+                const y = centerY + (f * (canvas.height / 3));
+                const xRight = centerX + (i * step);
+                const xLeft = centerX - (i * step);
+                
+                if(i === 0) ctx.moveTo(centerX, y);
+                else {
+                    ctx.lineTo(xRight, y);
+                }
+            }
+            ctx.stroke();
+            
+            // Mirror Path (Left)
+            ctx.beginPath();
+            for(let i = 0; i < bufferLength; i++) {
+                const f = (dataArray[i] / 128.0) - 1.0;
+                const y = centerY + (f * (canvas.height / 3));
+                const xLeft = centerX - (i * step);
+                if(i === 0) ctx.moveTo(centerX, y);
+                else ctx.lineTo(xLeft, y);
+            }
+            ctx.stroke();
+        },
+        cyberDashboard: (vol) => {
+            const rows = 12; // Baris vertikal
+            const cols = 24; // Baris horizontal
+            const padding = 6;
+            const cellW = (canvas.width - 100) / cols;
+            const cellH = (canvas.height / 3) / rows;
+            
+            ctx.save();
+            ctx.translate(50, canvas.height / 1.5); // Posisi di bagian bawah seperti panel kontrol
+
+            for (let x = 0; x < cols; x++) {
+                // Mengambil data frekuensi untuk setiap kolom
+                const index = Math.floor(x * (bufferLength / cols));
+                const f = dataArray[index] / 255;
+                const activeRows = Math.floor(f * rows);
+
+                for (let y = 0; y < rows; y++) {
+                    const posX = x * cellW;
+                    const posY = -y * cellH; // Menggambar ke atas
+
+                    // Logika Warna berdasarkan referensi (Cyan ke Dark)
+                    if (y < activeRows) {
+                        // Sel yang menyala (Active)
+                        const opacity = 0.3 + (y / rows);
+                        ctx.fillStyle = `rgba(0, 242, 254, ${opacity})`;
+                        ctx.shadowBlur = 15;
+                        ctx.shadowColor = 'rgba(0, 242, 254, 0.8)';
+                    } else {
+                        // Sel yang redup (Background Grid)
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+                        ctx.shadowBlur = 0;
+                    }
+
+                    // Menggambar kotak sesuai bentuk di gambar
+                    ctx.beginPath();
+                    ctx.roundRect(posX + padding/2, posY - padding/2, cellW - padding, cellH - padding, 2);
+                    ctx.fill();
+                }
+            }
+            
+            // Menambahkan garis aksen horizontal tipis di bawah grid
+            ctx.strokeStyle = 'rgba(0, 242, 254, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 10);
+            ctx.lineTo(cols * cellW, 10);
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+    };
+
+    function updateLyrics(avgVol) {
+        if (!isLyricsVisible) return;
+        if (!currentLyrics || currentLyrics.length === 0) {
+            lyricBox.innerHTML = '<div class="lyric-line active" style="opacity: 0.4">Lyrics Not Found</div>';
+            return;
+        }
+        const activeIndex = currentLyrics.findLastIndex(l => l.time <= audioPlayer.currentTime);
+        if (activeIndex !== -1) {
+            const text = currentLyrics[activeIndex].text;
+            if (lyricBox.dataset.currentIndex != activeIndex) {
+                lyricBox.innerHTML = `<div class="lyric-line active">${text}</div>`;
+                lyricBox.dataset.currentIndex = activeIndex;
+            }
+            const scale = 1 + (avgVol / 600);
+            lyricBox.style.transform = `scale(${scale})`;
+            lyricBox.style.filter = `blur(${avgVol > 120 ? 0.5 : 0}px)`;
+        }
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        if(!analyser) return;
+        analyser.getByteFrequencyData(dataArray);
+        const avgVol = dataArray.reduce((a,b)=>a+b)/bufferLength;
+
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const mode = vizType.value;
+        if(Engines[mode]) Engines[mode](avgVol);
+
+        if(avgVol > 125) {
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.fillStyle = getColor(100, 0.08);
+            ctx.fillRect(0,0,canvas.width, canvas.height);
+        }
+
+        updateLyrics(avgVol);
+        time += 0.02;
+    }
+
+    function toggleAutoViz() {
+        const btn = document.getElementById('autoVizBtn');
+        if(autoVizInterval) { clearInterval(autoVizInterval); autoVizInterval = null; btn.innerText = "AUTO: OFF"; }
+        else { btn.innerText = "AUTO: 8s"; autoVizInterval = setInterval(() => { vizType.selectedIndex = (vizType.selectedIndex + 1) % vizType.options.length; }, 8000); }
+    }
+
+    audioPlayer.onended = () => {
+        const mode = loopMode.value;
+        if (mode === 'repeat-one') audioPlayer.play();
+        else if (mode === 'shuffle') playSong(Math.floor(Math.random() * playlist.length));
+        else playSong((currentSongIndex + 1) % playlist.length);
+    };
+</script>
+</body>
+</html>
