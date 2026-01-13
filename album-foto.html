@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artisan Album Pro V3 - Fixed Controls</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;700;900&family=Montserrat:wght@800&family=Lora:ital@1&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --panel: #252525;
+            --accent: #d4af37;
+            --blue: #3498db;
+            --handle-size: 16px;
+        }
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; margin: 0; background: var(--bg); color: white; overflow: hidden; }
+
+        /* MODAL */
+        #setupModal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            display: flex; align-items: center; justify-content: center; z-index: 10000;
+        }
+        .modal-box {
+            background: var(--panel); padding: 40px; border-radius: 20px; width: 400px; text-align: center;
+            border: 1px solid #444; box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+        }
+
+        /* LAYOUT */
+        .app-container { display: flex; height: 100vh; }
+        
+        .sidebar { width: 340px; background: var(--panel); display: flex; flex-direction: column; border-right: 1px solid #333; }
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 25px; }
+
+        .workspace { flex: 1; overflow: auto; display: flex; flex-direction: column; align-items: center; padding: 60px; position: relative; }
+
+        /* PAGE & GRID */
+        .page {
+            background: white; position: relative; overflow: hidden;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5); margin-bottom: 50px;
+        }
+        .collage-grid { display: grid; width: 100%; height: 100%; gap: 15px; padding: 20px; box-sizing: border-box; }
+        
+        /* SLOT (MASK) */
+        .slot {
+            background: #f0f0f0; border: 1px dashed #ccc; position: relative;
+            overflow: hidden; /* INI YANG MELAKUKAN CROP */
+            display: flex; align-items: center; justify-content: center;
+        }
+        .slot.circle { border-radius: 50% !important; }
+
+        /* UPLOAD BUTTON */
+        .btn-upload {
+            position: absolute; z-index: 5; background: white; border: none;
+            padding: 10px 15px; border-radius: 5px; cursor: pointer;
+            font-size: 11px; font-weight: 700; color: #333; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        /* IMAGE IN SLOT */
+        .img-el {
+            position: absolute; cursor: move; transform-origin: center;
+            user-select: none; -webkit-user-drag: none;
+        }
+
+        /* GLOBAL TRANSFORM OVERLAY (Solusi agar handle tidak hilang) */
+        #transformOverlay {
+            position: absolute; border: 2px solid var(--blue);
+            pointer-events: none; z-index: 9999; display: none;
+        }
+        .handle {
+            position: absolute; width: var(--handle-size); height: var(--handle-size);
+            background: var(--blue); border: 2px solid white; border-radius: 50%;
+            pointer-events: all; cursor: pointer;
+        }
+        .h-scale { bottom: -9px; right: -9px; cursor: nwse-resize; }
+        .h-rotate { top: -40px; left: 50%; transform: translateX(-50%); background: #2ecc71; border-color: white; cursor: grab; }
+        .h-rotate::after { content: ''; position: absolute; top: 14px; left: 5px; width: 2px; height: 20px; background: #2ecc71; }
+        .h-del { top: -9px; right: -9px; background: #e74c3c; cursor: pointer; border-radius: 4px; color: white; 
+                 display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
+
+        /* TEXT ELEMENTS */
+        .txt-el {
+            position: absolute; cursor: move; padding: 10px; min-width: 50px;
+            white-space: nowrap; user-select: none; z-index: 10;
+        }
+
+        /* UI COMPONENTS */
+        .tool-label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 15px; display: block; }
+        .temp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 30px; }
+        .temp-item { background: #333; padding: 5px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
+        .temp-item:hover { border-color: var(--accent); }
+        .temp-pre { height: 50px; display: grid; gap: 2px; pointer-events: none; }
+
+        .btn-action { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; margin-bottom: 10px; }
+        .btn-gold { background: var(--accent); color: #000; }
+        .btn-dark { background: #444; color: #fff; }
+
+        select, input { background: #333; border: 1px solid #555; color: #fff; padding: 10px; border-radius: 6px; width: 100%; margin-bottom: 10px; }
+        .color-preview { height: 40px; border-radius: 6px; border: 2px solid #555; position: relative; overflow: hidden; }
+        .color-preview input { position: absolute; top:-5px; left:-5px; width:150%; height:150%; cursor:pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="setupModal">
+        <div class="modal-box">
+            <h1 style="font-family: 'Playfair Display'; color: var(--accent);">Artisan Album V3</h1>
+            <label class="tool-label">Pilih Ukuran Kertas</label>
+            <select id="paperSize">
+                <option value="a4-p">A4 Portrait</option>
+                <option value="a4-l">A4 Landscape</option>
+                <option value="a5-p">A5 Portrait</option>
+                <option value="a5-l">A5 Landscape</option>
+            </select>
+            <button class="btn-action btn-gold" onclick="startApp()">MULAI DESAIN</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-content">
+                <label class="tool-label">Layout Premium</label>
+                <div class="temp-grid" id="tplList"></div>
+
+                <label class="tool-label">Text Tools</label>
+                <button class="btn-action btn-dark" onclick="createNewText()">+ Tambah Teks</button>
+                <select id="fFamily" onchange="updateText()">
+                    <option value="'Inter'">Inter Sans</option>
+                    <option value="'Playfair Display'">Playfair Serif</option>
+                    <option value="'Montserrat'">Montserrat ExtraBold</option>
+                    <option value="'Lora'">Lora Italic</option>
+                </select>
+                <select id="fWeight" onchange="updateText()">
+                    <option value="400">Normal</option>
+                    <option value="700">Bold</option>
+                    <option value="900">Black</option>
+                </select>
+                <input type="number" id="fSize" value="30" oninput="updateText()">
+                <div class="color-preview">
+                    <input type="color" id="fColor" value="#1a1a1a" oninput="updateText()">
+                </div>
+
+                <div style="margin-top: 30px; font-size: 11px; color: #666;">
+                    <b>Keyboard Shortcuts:</b><br>
+                    DEL: Hapus | CTRL+Z: Undo | CTRL+Y: Redo
+                </div>
+            </div>
+            <div style="padding: 20px; border-top: 1px solid #333;">
+                <button class="btn-action btn-gold" onclick="exportPDF()">EXPORT PDF</button>
+                <button class="btn-action btn-dark" onclick="window.print()">PRINT</button>
+            </div>
+        </aside>
+
+        <main class="workspace" id="mainWs">
+            <div id="pageContainer"></div>
+            <button class="btn-action btn-gold" style="width: 250px;" onclick="addPage()">+ TAMBAH HALAMAN</button>
+            
+            <div id="transformOverlay">
+                <div class="handle h-rotate" id="rotH"></div>
+                <div class="handle h-scale" id="scH"></div>
+                <div class="handle h-del" id="delH" onclick="deleteSelected()">X</div>
+            </div>
+        </main>
+    </div>
+
+    <input type="file" id="imgInp" hidden accept="image/*">
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        let activeObj = null;
+        let currentPage = null;
+        let history = [];
+        let histIdx = -1;
+        let pageConf = { w: 794, h: 1123 };
+
+        const TEMPLATES = [
+            { id: 1, name: 'Minimal', grid: 'grid-template-areas: "a";', slots: 1 },
+            { id: 2, name: 'Modern Duo', grid: 'grid-template-columns: 1fr 1fr;', slots: 2 },
+            { id: 3, name: 'Editorial', grid: 'grid-template-columns: 2fr 1fr; grid-template-areas: "a b" "a c";', slots: 3 },
+            { id: 4, name: 'Magazine', grid: 'grid-template-rows: 1.5fr 1fr; grid-template-columns: 1fr 1fr; grid-template-areas: "a a" "b c";', slots: 3 },
+            { id: 5, name: 'Quad', grid: 'grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;', slots: 4 },
+            { id: 6, name: 'Classic 3', grid: 'grid-template-columns: repeat(3, 1fr);', slots: 3 },
+            { id: 7, name: 'The Artist', grid: 'grid-template-columns: 1.5fr 1fr; grid-template-areas: "a b" "a c";', circle: 2, slots: 3 },
+            { id: 8, name: 'Mosaic', grid: 'grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);', slots: 5 },
+            { id: 9, name: 'Portrait Focus', grid: 'grid-template-columns: 1fr 2fr 1fr;', slots: 3 },
+            { id: 10, name: 'Polaroid', grid: 'grid-template-columns: 1fr; padding: 40px 40px 100px 40px;', slots: 1 }
+        ];
+
+        function startApp() {
+            const sz = document.getElementById('paperSize').value;
+            const map = { 'a4-p': [794, 1123], 'a4-l': [1123, 794], 'a5-p': [559, 794], 'a5-l': [794, 559] };
+            pageConf.w = map[sz][0]; pageConf.h = map[sz][1];
+            document.getElementById('setupModal').style.display = 'none';
+            renderTemplates();
+            addPage();
+            save();
+        }
+
+        function renderTemplates() {
+            const container = document.getElementById('tplList');
+            TEMPLATES.forEach(t => {
+                const d = document.createElement('div');
+                d.className = 'temp-item';
+                d.onclick = () => applyTpl(t);
+                let boxes = '';
+                for(let i=0; i<t.slots; i++) boxes += `<div style="background:#555; ${t.circle === i ? 'border-radius:50%' : ''}"></div>`;
+                d.innerHTML = `<div class="temp-pre" style="${t.grid}">${boxes}</div>`;
+                container.appendChild(d);
+            });
+        }
+
+        function addPage() {
+            const container = document.getElementById('pageContainer');
+            const page = document.createElement('div');
+            page.className = 'page';
+            page.style.width = pageConf.w + 'px';
+            page.style.height = pageConf.h + 'px';
+            page.innerHTML = `<div class="collage-grid"></div>`;
+            page.onclick = (e) => { if(e.target === page || e.target.classList.contains('collage-grid')) deselect(); };
+            container.appendChild(page);
+            currentPage = page;
+            applyTpl(TEMPLATES[0]);
+        }
+
+        function applyTpl(tpl) {
+            if(!currentPage) return;
+            const grid = currentPage.querySelector('.collage-grid');
+            grid.innerHTML = '';
+            grid.style.cssText = tpl.grid;
+            for(let i=0; i<tpl.slots; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot' + (tpl.circle === i ? ' circle' : '');
+                const btn = document.createElement('button');
+                btn.className = 'btn-upload';
+                btn.innerText = 'Upload Foto';
+                btn.onclick = (e) => { e.stopPropagation(); upload(slot, btn); };
+                slot.appendChild(btn);
+                grid.appendChild(slot);
+            }
+            save();
+        }
+
+        function upload(slot, btn) {
+            const inp = document.getElementById('imgInp');
+            inp.onchange = (e) => {
+                const file = e.target.files[0];
+                if(!file) return;
+                const url = URL.createObjectURL(file);
+                let img = slot.querySelector('.img-el');
+                if(!img) {
+                    img = document.createElement('img');
+                    img.className = 'img-el';
+                    img.style.width = '100%';
+                    img.dataset.x = 0; img.dataset.y = 0; img.dataset.s = 1; img.dataset.r = 0;
+                    img.onmousedown = (e) => startDrag(e, img);
+                    slot.appendChild(img);
+                    btn.innerText = 'Replace';
+                }
+                img.src = url;
+                save();
+            };
+            inp.click();
+        }
+
+        function createNewText() {
+            if(!currentPage) return;
+            const txt = document.createElement('div');
+            txt.className = 'txt-el';
+            txt.contentEditable = true;
+            txt.innerText = 'Tulis Teks...';
+            txt.style.left = '100px'; txt.style.top = '100px';
+            txt.style.fontSize = '30px';
+            txt.dataset.x = 0; txt.dataset.y = 0; txt.dataset.s = 1; txt.dataset.r = 0;
+            txt.onmousedown = (e) => startDrag(e, txt);
+            currentPage.appendChild(txt);
+            select(txt);
+            save();
+        }
+
+        // --- MANIPULATION LOGIC ---
+
+        function select(el) {
+            deselect();
+            activeObj = el;
+            const overlay = document.getElementById('transformOverlay');
+            overlay.style.display = 'block';
+            updateOverlayPos();
+
+            if(el.classList.contains('txt-el')) {
+                document.getElementById('fSize').value = parseInt(el.style.fontSize);
+            }
+        }
+
+        function deselect() {
+            activeObj = null;
+            document.getElementById('transformOverlay').style.display = 'none';
+        }
+
+        function updateOverlayPos() {
+            if(!activeObj) return;
+            const rect = activeObj.getBoundingClientRect();
+            const wsRect = document.getElementById('mainWs').getBoundingClientRect();
+            const overlay = document.getElementById('transformOverlay');
+            
+            overlay.style.width = rect.width + 'px';
+            overlay.style.height = rect.height + 'px';
+            overlay.style.top = (rect.top + document.getElementById('mainWs').scrollTop - wsRect.top) + 'px';
+            overlay.style.left = (rect.left + document.getElementById('mainWs').scrollLeft - wsRect.left) + 'px';
+            overlay.style.transform = `rotate(${activeObj.dataset.r}deg)`;
+        }
+
+        function startDrag(e, el) {
+            e.stopPropagation();
+            select(el);
+            let startX = e.clientX, startY = e.clientY;
+            let origX = parseFloat(el.dataset.x), origY = parseFloat(el.dataset.y);
+
+            const move = (me) => {
+                el.dataset.x = origX + (me.clientX - startX);
+                el.dataset.y = origY + (me.clientY - startY);
+                applyTrans(el);
+                updateOverlayPos();
+            };
+            const up = () => { window.removeEventListener('mousemove', move); save(); };
+            window.addEventListener('mousemove', move);
+            window.addEventListener('mouseup', up);
+        }
+
+        // Handles Events
+        document.getElementById('scH').onmousedown = (e) => {
+            e.stopPropagation();
+            let startX = e.clientX, startS = parseFloat(activeObj.dataset.s);
+            const move = (me) => {
+                activeObj.dataset.s = Math.max(0.1, startS + (me.clientX - startX) * 0.005);
+                applyTrans(activeObj);
+                updateOverlayPos();
+            };
+            window.addEventListener('mousemove', move);
+            window.addEventListener('mouseup', () => { window.removeEventListener('mousemove', move); save(); });
+        };
+
+        document.getElementById('rotH').onmousedown = (e) => {
+            e.stopPropagation();
+            let startX = e.clientX, startR = parseFloat(activeObj.dataset.r);
+            const move = (me) => {
+                activeObj.dataset.r = startR + (me.clientX - startX);
+                applyTrans(activeObj);
+                updateOverlayPos();
+            };
+            window.addEventListener('mousemove', move);
+            window.addEventListener('mouseup', () => { window.removeEventListener('mousemove', move); save(); });
+        };
+
+        function applyTrans(el) {
+            el.style.transform = `translate(${el.dataset.x}px, ${el.dataset.y}px) scale(${el.dataset.s}) rotate(${el.dataset.r}deg)`;
+        }
+
+        function updateText() {
+            if(!activeObj || !activeObj.classList.contains('txt-el')) return;
+            activeObj.style.fontFamily = document.getElementById('fFamily').value;
+            activeObj.style.fontWeight = document.getElementById('fWeight').value;
+            activeObj.style.fontSize = document.getElementById('fSize').value + 'px';
+            activeObj.style.color = document.getElementById('fColor').value;
+            updateOverlayPos();
+        }
+
+        function deleteSelected() {
+            if(!activeObj) return;
+            if(activeObj.classList.contains('img-el')) {
+                const slot = activeObj.parentElement;
+                activeObj.remove();
+                slot.querySelector('.btn-upload').innerText = 'Upload Foto';
+            } else {
+                activeObj.remove();
+            }
+            deselect();
+            save();
+        }
+
+        // Keyboard
+        window.onkeydown = (e) => {
+            if(e.key === 'Delete' || e.key === 'Backspace') { 
+                if(activeObj && !activeObj.contentEditable) deleteSelected(); 
+            }
+            if(e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); }
+            if(e.ctrlKey && e.key === 'y') { e.preventDefault(); redo(); }
+        };
+
+        // HISTORY
+        function save() {
+            const h = document.getElementById('pageContainer').innerHTML;
+            if(histIdx < history.length - 1) history = history.slice(0, histIdx + 1);
+            history.push(h);
+            histIdx++;
+        }
+        function undo() { if(histIdx > 0) { histIdx--; restore(); } }
+        function redo() { if(histIdx < history.length - 1) { histIdx++; restore(); } }
+        function restore() {
+            document.getElementById('pageContainer').innerHTML = history[histIdx];
+            document.querySelectorAll('.img-el, .txt-el').forEach(el => {
+                el.onmousedown = (e) => startDrag(e, el);
+            });
+            document.querySelectorAll('.btn-upload').forEach(btn => {
+                const slot = btn.parentElement;
+                btn.onclick = (e) => { e.stopPropagation(); upload(slot, btn); };
+            });
+            deselect();
+        }
+
+        async function exportPDF() {
+            deselect();
+            const pdf = new jsPDF({ 
+                orientation: pageConf.w > pageConf.h ? 'l' : 'p', 
+                unit: 'px', 
+                format: [pageConf.w, pageConf.h] 
+            });
+            const pages = document.querySelectorAll('.page');
+            for(let i=0; i<pages.length; i++) {
+                pages[i].querySelectorAll('.btn-upload').forEach(b => b.style.display = 'none');
+                const canvas = await html2canvas(pages[i], { scale: 2 });
+                if(i > 0) pdf.addPage();
+                pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageConf.w, pageConf.h);
+                pages[i].querySelectorAll('.btn-upload').forEach(b => b.style.display = 'block');
+            }
+            pdf.save('album-premium.pdf');
+        }
+    </script>
+</body>
+</html>

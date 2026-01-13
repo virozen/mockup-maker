@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pattern Craft - Real Time Maker</title>
+    <style>
+        :root { --sidebar-bg: #ffffff; --accent: #3498db; --bg-workspace: #dfe6e9; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', sans-serif; background: var(--bg-workspace); overflow: hidden; }
+        
+        /* Modal Setup */
+        #modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+        .modal { background: white; padding: 30px; border-radius: 15px; width: 300px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        
+        /* Main Layout */
+        .app-container { display: flex; height: 100vh; }
+        .sidebar { width: 340px; background: var(--sidebar-bg); border-right: 1px solid #ccc; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.05); }
+        .workspace { flex: 1; overflow: auto; display: flex; justify-content: center; align-items: center; padding: 40px; }
+        
+        /* Interactive Preview Area */
+        #crop-zone { 
+            position: relative; width: 100%; background: #222; border-radius: 8px; overflow: hidden;
+            display: flex; align-items: flex-start; border: 2px solid #ddd;
+        }
+        #img-to-crop { max-width: 100%; display: block; user-select: none; pointer-events: none; }
+        #tile-selector { 
+            position: absolute; border: 2.5px solid #f1c40f; 
+            box-shadow: 0 0 0 5000px rgba(0,0,0,0.5), inset 0 0 5px rgba(255,255,255,0.8); 
+            cursor: move; box-sizing: border-box; z-index: 10;
+        }
+
+        canvas { background: white; box-shadow: 0 15px 50px rgba(0,0,0,0.2); }
+        
+        /* Form Elements */
+        .control-unit { display: flex; flex-direction: column; gap: 8px; }
+        label { font-weight: 600; font-size: 13px; color: #2c3e50; text-transform: uppercase; }
+        input[type="number"], select, input[type="file"] { padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+        input[type="range"] { cursor: pointer; }
+        
+        .btn-export { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-export:hover { background: #219150; transform: translateY(-2px); }
+        .modal button { width: 100%; background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+
+        .hint { font-size: 11px; color: #7f8c8d; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div id="modal-overlay">
+    <div class="modal">
+        <h2 style="margin: 0 0 15px 0; color: #2c3e50;">New Canvas</h2>
+        <div class="control-unit">
+            <label>Lebar (Pixel)</label>
+            <input type="number" id="canvas-w" value="1000">
+        </div>
+        <div class="control-unit" style="margin-top: 10px">
+            <label>Tinggi (Pixel)</label>
+            <input type="number" id="canvas-h" value="800">
+        </div>
+        <button onclick="initApp()">Buat Project</button>
+    </div>
+</div>
+
+<div class="app-container">
+    <aside class="sidebar">
+        <h2 style="margin:0; color: var(--accent);">Pattern Craft</h2>
+        
+        <div class="control-unit">
+            <label>1. Upload Gambar</label>
+            <input type="file" id="imageInput" accept="image/*">
+        </div>
+
+        <div class="control-unit">
+            <label>2. Tile Size: <span id="size-text">100</span>px</label>
+            <input type="range" id="size-slider" min="20" max="400" value="100">
+        </div>
+
+        <div class="control-unit">
+            <label>3. Atur Area Pattern</label>
+            <div id="crop-zone">
+                <div id="tile-selector"></div>
+                <img id="img-to-crop">
+            </div>
+            <span class="hint">*Drag kotak kuning untuk geser posisi</span>
+        </div>
+
+        <div class="control-unit">
+            <label>4. Pattern Type</label>
+            <select id="pattern-select" onchange="toggleRadialUI()">
+                <option value="linear">Linear (Normal)</option>
+                <option value="mirrorX">Mirror Horizontal</option>
+                <option value="mirrorY">Mirror Vertical</option>
+                <option value="mirrorXY">Full Mirror (Quad)</option>
+                <option value="radial">Linear Mandala</option>
+                <option value="mirroredMandala">Mirrored Mandala</option>
+            </select>
+        </div>
+
+        <div id="radial-controls" class="control-unit" style="display: none; margin-top: 10px;">
+            <label>5. Jumlah Sisi: <span id="angle-text">8</span> Sisi</label>
+            <input type="range" id="angle-slider" min="3" max="24" value="8">
+        </div>
+
+        <button class="btn-lucky" style="background: #9b59b6; color: white; padding: 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer;" onclick="feelingLucky()">🎲 Lucky</button>
+
+        <hr style="width:100%; border:0; border-top:1px solid #eee;">
+        
+
+        <div style="display: flex; gap: 10px; margin-top: 10px; align-items: center;">
+            <button class="btn-reset" style="flex: 1; background: #e74c3c; color: white; padding: 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer;" onclick="resetToNew()">🔄 Reset</button>
+            <button class="btn-export" onclick="downloadImage()" style="flex: 1;">Export to JPG</button>
+        </div>
+    </aside>
+
+    <main class="workspace">
+        <canvas id="patternCanvas"></canvas>
+    </main>
+</div>
+
+<script>
+    const canvas = document.getElementById('patternCanvas');
+    const ctx = canvas.getContext('2d');
+    const imgDisplay = document.getElementById('img-to-crop');
+    const selector = document.getElementById('tile-selector');
+    const sizeSlider = document.getElementById('size-slider');
+    const patternSelect = document.getElementById('pattern-select');
+
+    let isDragging = false;
+    let startX, startY;
+    let realCropX = 0, realCropY = 0;
+
+    // --- Core Functions ---
+
+    function initApp() {
+        canvas.width = document.getElementById('canvas-w').value;
+        canvas.height = document.getElementById('canvas-h').value;
+        document.getElementById('modal-overlay').style.display = 'none';
+        render();
+    }
+
+    // Auto-update saat slider atau select berubah
+    sizeSlider.addEventListener('input', () => {
+        document.getElementById('size-text').innerText = sizeSlider.value;
+        syncSelectorSize();
+        render();
+    });
+
+    patternSelect.addEventListener('change', render);
+
+    // Handle Upload
+    document.getElementById('imageInput').onchange = function(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            imgDisplay.src = event.target.result;
+            imgDisplay.onload = () => {
+                syncSelectorSize();
+                render();
+            };
+        };
+        reader.readAsDataURL(file);
+    };
+
+    // --- Drag Logic ---
+
+    selector.onmousedown = (e) => {
+        isDragging = true;
+        startX = e.clientX - selector.offsetLeft;
+        startY = e.clientY - selector.offsetTop;
+        e.preventDefault();
+    };
+
+    window.onmousemove = (e) => {
+        if (!isDragging) return;
+        
+        let x = e.clientX - startX;
+        let y = e.clientY - startY;
+
+        // Boundary check
+        const maxW = imgDisplay.clientWidth - selector.offsetWidth;
+        const maxH = imgDisplay.clientHeight - selector.offsetHeight;
+
+        x = Math.max(0, Math.min(x, maxW));
+        y = Math.max(0, Math.min(y, maxH));
+
+        selector.style.left = x + 'px';
+        selector.style.top = y + 'px';
+
+        // Hitung koordinat asli gambar (natural)
+        const ratio = imgDisplay.naturalWidth / imgDisplay.clientWidth;
+        realCropX = x * ratio;
+        realCropY = y * ratio;
+
+        render(); // Real-time update saat drag
+    };
+
+    window.onmouseup = () => isDragging = false;
+
+    function syncSelectorSize() {
+        if(!imgDisplay.naturalWidth) return;
+        const size = parseInt(sizeSlider.value);
+        const ratio = imgDisplay.clientWidth / imgDisplay.naturalWidth;
+        const visualSize = size * ratio;
+        
+        selector.style.width = visualSize + 'px';
+        selector.style.height = visualSize + 'px';
+        
+        // Reset posisi jika ukuran baru melebihi batas gambar
+        let left = selector.offsetLeft;
+        let top = selector.offsetTop;
+        if(left + visualSize > imgDisplay.clientWidth) left = imgDisplay.clientWidth - visualSize;
+        if(top + visualSize > imgDisplay.clientHeight) top = imgDisplay.clientHeight - visualSize;
+        
+        selector.style.left = Math.max(0, left) + 'px';
+        selector.style.top = Math.max(0, top) + 'px';
+
+        const nRatio = imgDisplay.naturalWidth / imgDisplay.clientWidth;
+        realCropX = parseFloat(selector.style.left) * nRatio;
+        realCropY = parseFloat(selector.style.top) * nRatio;
+    }
+
+    // Ambil referensi elemen baru
+    const radialUI = document.getElementById('radial-controls');
+        const angleSlider = document.getElementById('angle-slider');
+        const angleText = document.getElementById('angle-text');
+
+        // Fungsi untuk menampilkan/menyembunyikan kontrol sudut
+        function toggleRadialUI() {
+            const type = document.getElementById('pattern-select').value;
+            const radialControls = document.getElementById('radial-controls');
+            
+            // Munculkan slider hanya jika tipe adalah radial
+            radialControls.style.display = (type === 'radial' || type === 'mirroredMandala') ? 'flex' : 'none';
+            
+            render(); // Picu render ulang
+        }
+
+        // Listener untuk slider sudut
+        angleSlider.addEventListener('input', () => {
+            angleText.innerText = angleSlider.value;
+            render();
+    });
+
+    // Tambahkan listener pada slider sudut agar real-time
+    document.getElementById('angle-slider').addEventListener('input', function() {
+        document.getElementById('angle-text').innerText = this.value;
+        render();
+    });
+
+    function render() {
+        if (!imgDisplay.src || imgDisplay.src === "") return;
+        
+        const size = parseInt(sizeSlider.value);
+        const type = document.getElementById('pattern-select').value;
+        const canvasW = canvas.width;
+        const canvasH = canvas.height;
+
+        ctx.clearRect(0, 0, canvasW, canvasH);
+
+        // Cek jika tipe mengandung unsur radial/mandala
+        if (type.toLowerCase().includes('radial') || type.toLowerCase().includes('mandala')) {
+            
+            // Memastikan jumlah sisi selalu GENAP
+            let slices = parseInt(document.getElementById('angle-slider').value);
+            slices = Math.ceil(slices / 2) * 2; 
+            document.getElementById('angle-text').innerText = slices; // Update UI agar sinkron
+
+            const angleStep = (Math.PI * 2) / slices;
+            const centerX = canvasW / 2;
+            const centerY = canvasH / 2;
+            const radius = Math.sqrt(canvasW**2 + canvasH**2);
+
+            // Titik tengah selector sebagai referensi pusat rotasi
+            const sourceCenterX = realCropX + (size / 2);
+            const sourceCenterY = realCropY + (size / 2);
+
+            for (let i = 0; i < slices; i++) {
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(i * angleStep);
+
+                // Masking Segitiga (Wedge)
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius, -angleStep / 2, angleStep / 2 + 0.005);
+                ctx.closePath();
+                ctx.clip();
+
+                // Logika Pencerminan untuk Mirrored Mandala
+                if (type === 'mirroredMandala' && i % 2 === 1) {
+                    ctx.scale(1, -1); 
+                }
+
+                // Gambar (Linear Mandala tidak butuh scale tambahan)
+                ctx.drawImage(
+                    imgDisplay, 
+                    sourceCenterX, sourceCenterY - radius, radius, radius * 2,
+                    0, -radius, radius, radius * 2
+                );
+
+                ctx.restore();
+            }
+        } else {
+            // --- LOGIKA GRID (LINEAR & MIRROR BIASA) ---
+            for (let y = 0; y < canvasH; y += size) {
+                for (let x = 0; x < canvasW; x += size) {
+                    const col = Math.floor(x / size);
+                    const row = Math.floor(y / size);
+                    
+                    ctx.save();
+                    ctx.translate(x, y);
+                    let sx = 1, sy = 1;
+
+                    if (type === 'mirrorX' && col % 2 === 1) sx = -1;
+                    if (type === 'mirrorY' && row % 2 === 1) sy = -1;
+                    if (type === 'mirrorXY') {
+                        if (col % 2 === 1) sx = -1;
+                        if (row % 2 === 1) sy = -1;
+                    }
+
+                    ctx.scale(sx, sy);
+                    ctx.drawImage(
+                        imgDisplay, 
+                        realCropX, realCropY, size, size, 
+                        sx === -1 ? -size : 0, sy === -1 ? -size : 0, size, size
+                    );
+                    ctx.restore();
+                }
+            }
+        }
+    }
+
+    // Fitur "I'm Feeling Lucky" - Randomize Size & Position
+    function feelingLucky() {
+        if (!imgDisplay.src || imgDisplay.src === "") return alert("Upload gambar dulu!");
+
+        // 1. Randomize Pattern Type (Pilih index 0 sampai 3)
+        const patternOptions = patternSelect.options;
+        const randomTypeIndex = Math.floor(Math.random() * patternOptions.length);
+        patternSelect.selectedIndex = randomTypeIndex;
+
+        // 1. Randomize Size (antara min 40 sampai max 300)
+        const randomSize = Math.floor(Math.random() * (300 - 40 + 1)) + 40;
+        sizeSlider.value = randomSize;
+        document.getElementById('size-text').innerText = randomSize;
+
+        // 2. Update visual selector size dulu agar kalkulasi boundary benar
+        syncSelectorSize();
+
+        // 3. Randomize Position
+        const maxW = imgDisplay.clientWidth - selector.offsetWidth;
+        const maxH = imgDisplay.clientHeight - selector.offsetHeight;
+        
+        const randomX = Math.floor(Math.random() * maxW);
+        const randomY = Math.floor(Math.random() * maxH);
+
+        selector.style.left = randomX + 'px';
+        selector.style.top = randomY + 'px';
+
+        // 4. Sync ke koordinat real dan render
+        const ratio = imgDisplay.naturalWidth / imgDisplay.clientWidth;
+        realCropX = randomX * ratio;
+        realCropY = randomY * ratio;
+
+        render();
+    }
+
+    // Fitur "Reset & Create New"
+    function resetToNew() {
+        const konfirmasi = confirm("Apakah Anda ingin mereset semua pengaturan dan membuat canvas baru?");
+        if (konfirmasi) {
+            // Reset Sidebar Inputs
+            document.getElementById('imageInput').value = "";
+            imgDisplay.src = "";
+            imgDisplay.style.display = "none";
+            selector.style.width = "0px";
+            selector.style.height = "0px";
+            sizeSlider.value = 100;
+            document.getElementById('size-text').innerText = "100";
+            patternSelect.selectedIndex = 0;
+            
+            // Bersihkan Canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Munculkan Modal Kembali
+            document.getElementById('modal-overlay').style.display = 'flex';
+        }
+    }
+
+    function downloadImage() {
+        const link = document.createElement('a');
+        link.download = `pattern-${Date.now()}.jpg`;
+        link.href = canvas.toDataURL('image/jpeg', 0.9);
+        link.click();
+    }
+</script>
+</body>
+</html>

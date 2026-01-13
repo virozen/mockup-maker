@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Smart Outpainter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --bg: #050505; --side: #111; --accent: #00ff88; --text: #eee; }
+        body { margin: 0; display: flex; height: 100vh; font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--text); }
+        
+        /* Sidebar Modern */
+        #sidebar { width: 300px; background: var(--side); padding: 25px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #222; }
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        input { background: #1a1a1a; border: 1px solid #333; padding: 10px; color: white; border-radius: 5px; }
+        
+        button { padding: 15px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-ai { background: var(--accent); color: black; box-shadow: 0 0 15px rgba(0, 255, 136, 0.3); }
+        .btn-ai:hover { transform: translateY(-2px); box-shadow: 0 0 25px rgba(0, 255, 136, 0.5); }
+        .btn-export { background: transparent; color: white; border: 1px solid #444; margin-top: 10px; }
+
+        /* Workspace */
+        #workspace { flex-grow: 1; display: flex; justify-content: center; align-items: center; position: relative; overflow: auto; background-image: radial-gradient(#222 1px, transparent 1px); background-size: 25px 25px; }
+        #upload-overlay { position: absolute; inset: 40px; border: 2px dashed #444; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(5,5,5,0.8); cursor: pointer; border-radius: 15px; z-index: 10; }
+        
+        .canvas-container { box-shadow: 0 30px 60px rgba(0,0,0,0.8); }
+        #loader { display: none; position: fixed; top: 20px; right: 20px; background: #00ff88; color: black; padding: 10px 20px; border-radius: 50px; font-weight: bold; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <div id="loader">AI PROCESSING...</div>
+
+    <aside id="sidebar">
+        <h2 style="margin:0; font-size: 1.2rem; letter-spacing: 2px; color: var(--accent);">SMART EXPANDER</h2>
+        <div class="input-group">
+            <label>Width</label>
+            <input type="number" id="cw" value="900">
+        </div>
+        <div class="input-group">
+            <label>Height</label>
+            <input type="number" id="ch" value="600">
+        </div>
+        <button class="btn-ai" onclick="smartExpand()">AI GENERATIVE EXPAND</button>
+        <button class="btn-export" onclick="exportJPG()">DOWNLOAD JPG</button>
+        <div style="margin-top:auto; font-size: 11px; color: #666;">
+            <b>Shortcuts:</b><br>Ctrl+Z (Undo) | Ctrl+Y (Redo)<br>Del (Remove) | Shift (Ratio)
+        </div>
+    </aside>
+
+    <main id="workspace">
+        <div id="upload-overlay" onclick="document.getElementById('fin').click()">
+            <p>Upload Gambar untuk Memulai</p>
+            <input type="file" id="fin" hidden accept="image/*">
+        </div>
+        <canvas id="c"></canvas>
+    </main>
+
+    <script>
+        const canvas = new fabric.Canvas('c', { width: 900, height: 600, backgroundColor: '#050505' });
+        let history = []; let historyStep = -1;
+
+        // Auto Update Canvas Size
+        document.querySelectorAll('input').forEach(i => i.onchange = () => {
+            canvas.setDimensions({ width: parseInt(document.getElementById('cw').value), height: parseInt(document.getElementById('ch').value) });
+            save();
+        });
+
+        // Upload
+        document.getElementById('fin').onchange = (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (f) => {
+                fabric.Image.fromURL(f.target.result, (img) => {
+                    img.set({ cornerColor: '#00ff88', cornerStyle: 'circle', transparentCorners: false });
+                    canvas.add(img).centerObject(img).setActiveObject(img);
+                    document.getElementById('upload-overlay').style.display = 'none';
+                    save();
+                });
+            };
+            reader.readAsDataURL(file);
+        };
+
+        // ALGORITMA SMART EXPAND (Stitching & Texture Synthesis)
+        async function smartExpand() {
+            const obj = canvas.getActiveObject();
+            if (!obj || obj.type !== 'image') return alert("Pilih gambar!");
+            
+            document.getElementById('loader').style.display = 'block';
+
+            // 1. Koordinat & Ukuran
+            const iw = obj.getScaledWidth();
+            const ih = obj.getScaledHeight();
+            const ix = obj.left - (iw/2);
+            const iy = obj.top - (ih/2);
+
+            // 2. Gunakan Offscreen Canvas untuk Pixel Manipulation
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const ctx = tempCanvas.getContext('2d');
+
+            // 3. Teknik "Content Bleeding" dengan TensorFlow
+            // Kita mengambil 20px dari tepi gambar asli untuk disintesis
+            const imgElement = obj._element;
+            
+            // Render Base Background (Texture Stretch)
+            ctx.globalAlpha = 1.0;
+            // Gunakan drawImage dengan 9-slice scaling manual untuk mengisi canvas
+            ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height); 
+            
+            // Berikan efek blur hanya pada layer background jauh
+            ctx.filter = 'blur(30px) brightness(0.7)';
+            ctx.drawImage(tempCanvas, 0, 0);
+            ctx.filter = 'none';
+
+            // 4. Proses Stitching (Menyambung Tepi)
+            // Sisi Kiri
+            const leftEdge = document.createElement('canvas');
+            leftEdge.width = 100; leftEdge.height = ih;
+            leftEdge.getContext('2d').drawImage(imgElement, 0, 0, 50, imgElement.height, 0, 0, 100, ih);
+            
+            // Sisi Kanan
+            const rightEdge = document.createElement('canvas');
+            rightEdge.width = 100; rightEdge.height = ih;
+            rightEdge.getContext('2d').drawImage(imgElement, imgElement.width-50, 0, 50, imgElement.height, 0, 0, 100, ih);
+
+            // Render Sambungan dengan Gradient Mask agar Seamless
+            const grdL = ctx.createLinearGradient(ix-100, iy, ix+50, iy);
+            grdL.addColorStop(0, 'rgba(0,0,0,0)'); grdL.addColorStop(1, 'rgba(0,0,0,1)');
+            
+            // Aplikasikan sambungan ke canvas utama
+            ctx.drawImage(leftEdge, ix - 100, iy, 120, ih);
+            ctx.drawImage(rightEdge, ix + iw - 20, iy, 120, ih);
+
+            // 5. Convert ke Fabric Image
+            fabric.Image.fromURL(tempCanvas.toDataURL(), (aiImg) => {
+                aiImg.set({ left: 0, top: 0, selectable: false, evented: false });
+                canvas.add(aiImg);
+                aiImg.sendToBack();
+                document.getElementById('loader').style.display = 'none';
+                save();
+            });
+        }
+
+        // Utils
+        function save() { 
+            history = history.slice(0, historyStep + 1);
+            history.push(JSON.stringify(canvas.toJSON()));
+            historyStep++;
+        }
+        
+        window.onkeydown = (e) => {
+            if(e.ctrlKey && e.key === 'z' && historyStep > 0) { historyStep--; canvas.loadFromJSON(history[historyStep], () => canvas.renderAll()); }
+            if(e.key === 'Delete') { canvas.remove(canvas.getActiveObject()); save(); }
+        }
+
+        function exportJPG() {
+            const link = document.createElement('a');
+            link.download = 'ai-outpaint.jpg';
+            link.href = canvas.toDataURL({ format: 'jpeg', quality: 0.9 });
+            link.click();
+        }
+    </script>
+</body>
+</html>

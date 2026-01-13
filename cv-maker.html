@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATS Resume Builder Premium</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.cdnfonts.com/css/calibri');
+
+        :root {
+            --sidebar-width: 450px;
+            --primary-dark: #0f172a;
+            --accent-blue: #3b82f6;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            overflow: hidden;
+        }
+
+        /* Sidebar UI */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            overflow-y: auto;
+            position: fixed;
+            left: 0;
+            top: 0;
+            padding-bottom: 120px;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            background: var(--primary-dark);
+            color: white;
+            padding: 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 101;
+        }
+
+        .section-card {
+            margin: 1.2rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #f8fafc;
+            padding: 1rem;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--primary-dark);
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-body { padding: 1.2rem; }
+
+        /* Input Styling */
+        .form-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control, .form-select {
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 0.9rem;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Preview Pane */
+        .preview-pane {
+            margin-left: var(--sidebar-width);
+            height: 100vh;
+            overflow-y: auto;
+            background: #475569;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        #cv-render {
+            background: white;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 15mm 20mm;
+            font-family: 'Calibri', 'Arial', sans-serif;
+            color: black;
+            line-height: 1.2;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+        }
+
+        .cv-section-title {
+            border-bottom: 1.5pt solid black;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 11pt;
+            margin-top: 14pt;
+            margin-bottom: 5pt;
+        }
+
+        /* Fixed Action Bar */
+        .action-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            background: white;
+            padding: 1.5rem;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 12px;
+            z-index: 200;
+        }
+
+        .btn-premium {
+            padding: 0.8rem;
+            font-weight: 700;
+            border-radius: 10px;
+            flex: 1;
+        }
+
+        .dynamic-item {
+            background: #f1f5f9;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-header">
+        <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i> ATS Resume Pro</h5>
+        <small class="opacity-75">Professional Input Interface</small>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header"><i class="fas fa-user"></i> Data Pribadi</div>
+        <div class="section-body">
+            <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input type="text" id="in_name" class="form-control" placeholder="John Doe" oninput="updateCV()">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Professional Title</label>
+                <input type="text" id="in_title" class="form-control" placeholder="Senior Product Manager" oninput="updateCV()">
+            </div>
+            <div class="row g-2">
+                <div class="col-6 mb-3"><label class="form-label">Email</label><input type="email" id="in_email" class="form-control" oninput="updateCV()"></div>
+                <div class="col-6 mb-3"><label class="form-label">Phone</label><input type="text" id="in_phone" class="form-control" oninput="updateCV()"></div>
+            </div>
+            <div class="row g-2">
+                <div class="col-6 mb-3"><label class="form-label">City</label><input type="text" id="in_city" class="form-control" oninput="updateCV()"></div>
+                <div class="col-6 mb-3"><label class="form-label">Country</label><input type="text" id="in_country" class="form-control" oninput="updateCV()"></div>
+            </div>
+            <div class="mb-3"><label class="form-label">LinkedIn URL</label><input type="text" id="in_linkedin" class="form-control" oninput="updateCV()"></div>
+            <div class="mb-3"><label class="form-label">Portfolio Website</label><input type="text" id="in_web" class="form-control" oninput="updateCV()"></div>
+            <div class="mb-3"><label class="form-label">Other Social (GitHub/Behance)</label><input type="text" id="in_social" class="form-control" oninput="updateCV()"></div>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header"><i class="fas fa-pen"></i> Ringkasan Profil</div>
+        <div class="section-body">
+            <textarea id="in_summary" class="form-control" rows="5" placeholder="Tulis ringkasan karier Anda..." oninput="updateCV()"></textarea>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-briefcase"></i> Pengalaman Kerja</span>
+            <button class="btn btn-sm btn-primary" onclick="addItem('exp')">+ Add</button>
+        </div>
+        <div class="section-body" id="exp-inputs"></div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-graduation-cap"></i> Pendidikan</span>
+            <button class="btn btn-sm btn-primary" onclick="addItem('edu')">+ Add</button>
+        </div>
+        <div class="section-body" id="edu-inputs"></div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-bolt"></i> Skills</span>
+            <button class="btn btn-sm btn-primary" onclick="addItem('skill')">+ Add</button>
+        </div>
+        <div class="section-body" id="skill-inputs"></div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header"><i class="fas fa-tools"></i> Tools & Technologies</div>
+        <div class="section-body">
+            <label class="form-label">List Tools (Separated by comma)</label>
+            <input type="text" id="in_tools" class="form-control" placeholder="Figma, Git, Jira..." oninput="updateCV()">
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-certificate"></i> Sertifikasi</span>
+            <button class="btn btn-sm btn-primary" onclick="addItem('cert')">+ Add</button>
+        </div>
+        <div class="section-body" id="cert-inputs"></div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-project-diagram"></i> Proyek</span>
+            <button class="btn btn-sm btn-primary" onclick="addItem('proj')">+ Add</button>
+        </div>
+        <div class="section-body" id="proj-inputs"></div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-language"></i> Bahasa</span>
+            <button class="btn btn-sm btn-primary" onclick="addItem('lang')">+ Add</button>
+        </div>
+        <div class="section-body" id="lang-inputs"></div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-trophy"></i> Achievement & Awards</span>
+            <button class="btn btn-sm btn-primary" onclick="addItem('award')">+ Add</button>
+        </div>
+        <div class="section-body" id="award-inputs"></div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header"><i class="fas fa-crosshairs"></i> Preferensi Pekerjaan</div>
+        <div class="section-body">
+            <div class="mb-3"><label class="form-label">Target Title</label><input type="text" id="in_target_title" class="form-control" oninput="updateCV()"></div>
+            <div class="mb-3"><label class="form-label">Location Preference</label><input type="text" id="in_target_loc" class="form-control" oninput="updateCV()"></div>
+            <div class="mb-3">
+                <label class="form-label">Work Style</label>
+                <select id="in_work_style" class="form-select" onchange="updateCV()">
+                    <option value="">Select</option>
+                    <option value="Remote">Remote</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="On-site">On-site</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header"><i class="fas fa-info-circle"></i> Legal & References</div>
+        <div class="section-body">
+            <div class="mb-3">
+                <label class="form-label">Willing to Relocate?</label>
+                <select id="in_relo" class="form-select" onchange="updateCV()">
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                </select>
+            </div>
+            <div class="mb-3"><label class="form-label">References (Text Only)</label><textarea id="in_ref" class="form-control" rows="2" oninput="updateCV()"></textarea></div>
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <button class="btn btn-danger btn-premium" onclick="downloadPDF()"><i class="fas fa-file-pdf me-2"></i>PDF</button>
+        <button class="btn btn-primary btn-premium" onclick="downloadDocx()"><i class="fas fa-file-word me-2"></i>DOCX</button>
+    </div>
+</div>
+
+<div class="preview-pane">
+    <div id="cv-render">
+        <div class="text-center mb-3">
+            <h1 id="out_name" class="fw-bold text-uppercase mb-1" style="font-size: 18pt;">Full Name</h1>
+            <p id="out_title" class="fw-bold text-secondary mb-2" style="font-size: 11pt;"></p>
+            <div id="out_contact" class="text-muted" style="font-size: 9.5pt;"></div>
+            <div id="out_links" class="text-muted" style="font-size: 9.5pt;"></div>
+        </div>
+
+        <div id="sec_summary" class="d-none">
+            <div class="cv-section-title">Professional Summary</div>
+            <p id="out_summary" class="text-justify" style="font-size: 10pt;"></p>
+        </div>
+
+        <div id="sec_exp" class="d-none">
+            <div class="cv-section-title">Work Experience</div>
+            <div id="out_exp"></div>
+        </div>
+
+        <div id="sec_proj" class="d-none">
+            <div class="cv-section-title">Key Projects</div>
+            <div id="out_proj"></div>
+        </div>
+
+        <div id="sec_edu" class="d-none">
+            <div class="cv-section-title">Education</div>
+            <div id="out_edu"></div>
+        </div>
+
+        <div id="sec_skills" class="d-none">
+            <div class="cv-section-title">Skills & Technologies</div>
+            <div id="out_skills_list" style="font-size: 10pt;"></div>
+            <div id="out_tools" class="mt-1 italic" style="font-size: 10pt;"></div>
+        </div>
+
+        <div id="sec_cert" class="d-none">
+            <div class="cv-section-title">Certifications</div>
+            <div id="out_cert_list" style="font-size: 10pt;"></div>
+        </div>
+
+        <div id="sec_award" class="d-none">
+            <div class="cv-section-title">Awards & Achievements</div>
+            <div id="out_award_list" style="font-size: 10pt;"></div>
+        </div>
+
+        <div class="row">
+            <div class="col-6">
+                <div id="sec_lang" class="d-none">
+                    <div class="cv-section-title">Languages</div>
+                    <div id="out_lang_list" style="font-size: 10pt;"></div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div id="sec_misc" class="d-none">
+                    <div class="cv-section-title">Additional Info</div>
+                    <div id="out_misc_list" style="font-size: 9.5pt;" class="fst-italic text-muted"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sec_ref" class="d-none mt-3">
+            <div class="fw-bold border-bottom mb-1" style="font-size: 10pt;">REFERENCES</div>
+            <p id="out_ref" style="font-size: 10pt;"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- State Handlers ---
+    function addItem(type) {
+        const container = document.getElementById(`${type}-inputs`);
+        const id = Date.now();
+        let html = '';
+
+        if(type === 'exp') {
+            html = `
+                <div class="dynamic-item" id="item-${id}">
+                    <span class="remove-btn" onclick="removeItem('item-${id}')"><i class="fas fa-trash"></i></span>
+                    <input type="text" class="form-control mb-2 fw-bold exp-t" placeholder="Job Title" oninput="updateCV()">
+                    <input type="text" class="form-control mb-2 exp-c" placeholder="Company" oninput="updateCV()">
+                    <div class="row g-2 mb-2">
+                        <div class="col-6"><input type="date" class="form-control exp-s" oninput="updateCV()"></div>
+                        <div class="col-6"><input type="date" class="form-control exp-e" id="end-${id}" oninput="updateCV()"></div>
+                    </div>
+                    <div class="form-check mb-2 small">
+                        <input class="form-check-input" type="checkbox" id="pres-${id}" onchange="togglePresent('${id}')">
+                        <label class="form-check-label">Still Working Here</label>
+                    </div>
+                    <textarea class="form-control mb-2 exp-d" placeholder="Description (use bullets)" oninput="updateCV()"></textarea>
+                    <input type="text" class="form-control exp-a" placeholder="Achievements" oninput="updateCV()">
+                </div>`;
+        } else if(type === 'edu') {
+            html = `
+                <div class="dynamic-item" id="item-${id}">
+                    <span class="remove-btn" onclick="removeItem('item-${id}')">✕</span>
+                    <input type="text" class="form-control mb-2 fw-bold edu-d" placeholder="Degree (S1 Desain)" oninput="updateCV()">
+                    <input type="text" class="form-control mb-2 edu-i" placeholder="Institution" oninput="updateCV()">
+                    <div class="row g-2"><div class="col-6"><input type="date" class="form-control edu-s" oninput="updateCV()"></div><div class="col-6"><input type="date" class="form-control edu-e" oninput="updateCV()"></div></div>
+                </div>`;
+        } else if(type === 'skill') {
+            html = `
+                <div class="dynamic-item" id="item-${id}">
+                    <span class="remove-btn" onclick="removeItem('item-${id}')">✕</span>
+                    <input type="text" class="form-control mb-2 sk-n" placeholder="Skill Name" oninput="updateCV()">
+                    <select class="form-select sk-l" onchange="updateCV()"><option value="Expert">Expert</option><option value="Medium">Medium</option><option value="Beginner">Beginner</option></select>
+                </div>`;
+        } else if(type === 'proj') {
+            html = `
+                <div class="dynamic-item" id="item-${id}">
+                    <span class="remove-btn" onclick="removeItem('item-${id}')">✕</span>
+                    <input type="text" class="form-control mb-2 fw-bold pj-n" placeholder="Project Name" oninput="updateCV()">
+                    <textarea class="form-control pj-d" rows="2" placeholder="Description" oninput="updateCV()"></textarea>
+                </div>`;
+        } else if(type === 'lang') {
+            html = `<div class="d-flex gap-2 mb-2" id="item-${id}"><input type="text" class="form-control ln-n" placeholder="Language" oninput="updateCV()"><select class="form-select ln-l" onchange="updateCV()"><option value="Native">Native</option><option value="Professional">Professional</option><option value="Basic">Basic</option></select><button class="btn btn-sm text-danger" onclick="removeItem('item-${id}')">✕</button></div>`;
+        } else if(type === 'cert') {
+            html = `<div class="dynamic-item" id="item-${id}"><span class="remove-btn" onclick="removeItem('item-${id}')">✕</span><input type="text" class="form-control mb-1 ct-n" placeholder="Cert Name" oninput="updateCV()"><input type="text" class="form-control ct-o small" placeholder="Issuer" oninput="updateCV()"></div>`;
+        } else if(type === 'award') {
+            html = `<div class="dynamic-item" id="item-${id}"><span class="remove-btn" onclick="removeItem('item-${id}')">✕</span><input type="text" class="form-control mb-1 aw-n" placeholder="Award Title" oninput="updateCV()"><input type="text" class="form-control aw-i small" placeholder="Issuer" oninput="updateCV()"></div>`;
+        }
+
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    function removeItem(id) { document.getElementById(id).remove(); updateCV(); }
+
+    function togglePresent(id) {
+        const isChecked = document.getElementById(`pres-${id}`).checked;
+        document.getElementById(`end-${id}`).disabled = isChecked;
+        updateCV();
+    }
+
+    // --- Core Logic ---
+    function updateCV() {
+        // Personal
+        const name = document.getElementById('in_name').value;
+        document.getElementById('out_name').innerText = name || "Your Full Name";
+        document.getElementById('out_title').innerText = document.getElementById('in_title').value;
+        
+        const contacts = [document.getElementById('in_email').value, document.getElementById('in_phone').value, document.getElementById('in_city').value].filter(v => v);
+        document.getElementById('out_contact').innerText = contacts.join(' | ');
+
+        const links = [document.getElementById('in_linkedin').value, document.getElementById('in_web').value, document.getElementById('in_social').value].filter(v => v);
+        document.getElementById('out_links').innerText = links.join(' | ');
+
+        // Summary
+        const sum = document.getElementById('in_summary').value;
+        toggle('sec_summary', sum);
+        document.getElementById('out_summary').innerText = sum;
+
+        // Experience
+        let expHtml = '';
+        document.querySelectorAll('#exp-inputs .dynamic-item').forEach(el => {
+            const t = el.querySelector('.exp-t').value;
+            const c = el.querySelector('.exp-c').value;
+            const s = el.querySelector('.exp-s').value;
+            const e = el.querySelector('.exp-e').value;
+            const p = el.querySelector('.form-check-input').checked;
+            const d = el.querySelector('.exp-d').value;
+            const a = el.querySelector('.exp-a').value;
+
+            if(t || c) {
+                expHtml += `<div class="mb-3">
+                    <div class="d-flex justify-content-between fw-bold" style="font-size: 10.5pt;"><span>${t}</span><span>${s} — ${p ? 'Present' : e}</span></div>
+                    <div class="fst-italic" style="font-size: 10pt;">${c}</div>
+                    <ul class="ps-3 mb-1" style="font-size: 10pt;">${d.split('\n').filter(l => l).map(l => `<li>${l}</li>`).join('')}</ul>
+                    ${a ? `<div style="font-size: 9.5pt;"><b>Achievement:</b> ${a}</div>` : ''}
+                </div>`;
+            }
+        });
+        toggle('sec_exp', expHtml);
+        document.getElementById('out_exp').innerHTML = expHtml;
+
+        // Education
+        let eduHtml = '';
+        document.querySelectorAll('#edu-inputs .dynamic-item').forEach(el => {
+            const d = el.querySelector('.edu-d').value;
+            const i = el.querySelector('.edu-i').value;
+            const e = el.querySelector('.edu-e').value;
+            if(d || i) eduHtml += `<div class="d-flex justify-content-between mb-1" style="font-size: 10.5pt;"><span><b>${i}</b>, ${d}</span><span>${e}</span></div>`;
+        });
+        toggle('sec_edu', eduHtml);
+        document.getElementById('out_edu').innerHTML = eduHtml;
+
+        // Skills & Tools
+        let sks = [];
+        document.querySelectorAll('#skill-inputs .dynamic-item').forEach(el => { if(el.querySelector('.sk-n').value) sks.push(`<b>${el.querySelector('.sk-n').value}</b> (${el.querySelector('.sk-l').value})`); });
+        const tools = document.getElementById('in_tools').value;
+        toggle('sec_skills', sks.length || tools);
+        document.getElementById('out_skills_list').innerHTML = sks.join(' • ');
+        document.getElementById('out_tools').innerText = tools ? "Tools: " + tools : "";
+
+        // Projects
+        let pjH = '';
+        document.querySelectorAll('#proj-inputs .dynamic-item').forEach(el => {
+            const n = el.querySelector('.pj-n').value;
+            const d = el.querySelector('.pj-d').value;
+            if(n) pjH += `<div class="mb-2" style="font-size: 10pt;"><b>${n}</b>: ${d}</div>`;
+        });
+        toggle('sec_proj', pjH);
+        document.getElementById('out_proj').innerHTML = pjH;
+
+        // Certs
+        let ctH = [];
+        document.querySelectorAll('#cert-inputs .dynamic-item').forEach(el => { if(el.querySelector('.ct-n').value) ctH.push(`${el.querySelector('.ct-n').value} (${el.querySelector('.ct-o').value})`); });
+        toggle('sec_cert', ctH.length);
+        document.getElementById('out_cert_list').innerText = ctH.join(' • ');
+
+        // Award
+        let awH = [];
+        document.querySelectorAll('#award-inputs .dynamic-item').forEach(el => { if(el.querySelector('.aw-n').value) awH.push(`${el.querySelector('.aw-n').value} — ${el.querySelector('.aw-i').value}`); });
+        toggle('sec_award', awH.length);
+        document.getElementById('out_award_list').innerHTML = awH.map(x => `<div>• ${x}</div>`).join('');
+
+        // Lang
+        let ln = [];
+        document.querySelectorAll('#lang-inputs .d-flex').forEach(el => { if(el.querySelector('.ln-n').value) ln.push(`${el.querySelector('.ln-n').value} (${el.querySelector('.ln-l').value})`); });
+        toggle('sec_lang', ln.length);
+        document.getElementById('out_lang_list').innerText = ln.join(', ');
+
+        // Misc
+        const relo = document.getElementById('in_relo').value;
+        const style = document.getElementById('in_work_style').value;
+        const target = document.getElementById('in_target_title').value;
+        let miscH = (relo ? `Willing to Relocate: ${relo}` : '') + (style ? ` | Pref: ${style}` : '') + (target ? ` | Target: ${target}` : '');
+        toggle('sec_misc', (relo || style || target));
+        document.getElementById('out_misc_list').innerText = miscH;
+
+        // Ref
+        const ref = document.getElementById('in_ref').value;
+        toggle('sec_ref', ref);
+        document.getElementById('out_ref').innerText = ref;
+    }
+
+    function toggle(id, cond) { document.getElementById(id).classList.toggle('d-none', !cond); }
+
+    // --- Export ---
+    function downloadPDF() {
+        const element = document.getElementById('cv-render');
+        html2pdf().set({ margin: 0, filename: 'Resume_ATS.pdf', html2canvas: { scale: 3 }, jsPDF: { unit: 'mm', format: 'a4' } }).from(element).save();
+    }
+
+    async function downloadDocx() {
+        const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
+        const children = [new Paragraph({ text: document.getElementById('out_name').innerText, heading: HeadingLevel.HEADING_1, alignment: "center" })];
+        const doc = new Document({ sections: [{ children }] });
+        const blob = await Packer.toBlob(doc);
+        saveAs(blob, "Resume.docx");
+    }
+
+    window.onload = () => { addItem('exp'); addItem('edu'); updateCV(); };
+</script>
+</body>
+</html>
